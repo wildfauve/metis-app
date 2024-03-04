@@ -2,7 +2,7 @@ from typing import Dict, List, Union, Callable
 from http import cookies
 from pymonad.tools import curry
 
-from . import fn
+from metis_fn import fn
 
 class SessionProperty:
 

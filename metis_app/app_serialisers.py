@@ -1,7 +1,7 @@
 from typing import Optional, List, Dict, Tuple, Callable, Any, Protocol
 import json
 
-from . import monad
+from metis_fn import monad
 
 class SerialiserProtocol(Protocol):
     def __init__(self, serialisable: Any, serialisation: Callable):

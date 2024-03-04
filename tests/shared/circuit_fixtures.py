@@ -1,5 +1,5 @@
 import pytest
-from typing import Optional, Callable, Union
+from typing import Union
 from datetime import datetime
 from metis_app import circuit
 from metis_fn import chronos

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Protocol, Any, List, Optional
 from pymonad.tools import curry
 
-from metis_fn import fn
+from metis_fn import fn, monad
 
 from . import subject_token, crypto
 """

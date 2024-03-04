@@ -1,6 +1,7 @@
 import pytest
+from metis_fn import chronos
 
-from metis_app import chronos, random_retry_window
+from metis_app import random_retry_window
 
 def test_is_short_of_the_window():
     window_width = 60*60

@@ -1,6 +1,6 @@
 import collections.abc
 import sys
-from . import chronos
+from metis_fn import chronos
 
 def nested_coerse(d, u):
     for k, v in u.items():

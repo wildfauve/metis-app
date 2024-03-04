@@ -82,7 +82,7 @@ class Request(DataClassAbstract):
     response: Optional[dict] = None
     response_headers: Optional[dict] = None
 
-class AppError(error.metis_appBaseError):
+class AppError(error.BaseError):
     @classmethod
     def dict_to_json_serialiser(cls):
         return app_serialisers.DictToJsonSerialiser

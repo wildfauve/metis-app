@@ -1,21 +1,17 @@
-from typing import Dict, Optional, Union, Tuple, Any, Callable
+import json
+from typing import Dict, Union, Any, Callable
 from pino import pino
 import sys
 from functools import reduce
 import time
+from metis_fn import chronos
 
 from .tracer import Tracer
-from . import chronos, coerser
+from . import json_util
 
 
 def info(msg: str, tracer: Tracer | None = None, status: str = 'ok', ctx: dict = {}) -> None:
     _log('info', msg, tracer, status, ctx)
-
-
-def _log(level: str, msg: str, tracer: Any, status: str, ctx: Dict[str, str]) -> None:
-    if level not in level_functions.keys():
-        return
-    level_functions.get(level, info)(logger(), msg, meta(tracer, status, ctx))
 
 
 def _log(level: str, msg: str, tracer: Any, status: str, ctx: Dict[str, str]) -> None:
@@ -59,8 +55,12 @@ def log_decorator(fn):
     return log_writer
 
 
+def custom_pino_dump_fn(json_log):
+    return json.dumps(json_log, cls=json_util.CustomLogEncoder)
+
+
 def logger():
-    return pino(bindings={"apptype": "prototype", "context": "main"})
+    return pino(bindings={"apptype": "prototype", "context": "main"}, dump_function=custom_pino_dump_fn)
 
 
 def _info(lgr, msg: str, meta: Dict) -> None:
@@ -73,9 +73,8 @@ def perf_log(fn: str, delta_t: float, callback: Callable = None):
     info("PerfLog", ctx={'fn': fn, 'delta_t': delta_t})
 
 
-def meta(tracer, status: Union[str, int], ctx: Dict):
-    coersed_ctx = coerser.nested_coerse({}, ctx)
-    return {**trace_meta(tracer), **{'ctx': coersed_ctx}, **{'status': status}}
+def meta(tracer, status: str | int, ctx: dict):
+    return {**trace_meta(tracer), **{'ctx': ctx}, **{'status': status}}
 
 
 def trace_meta(tracer):

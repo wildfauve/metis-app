@@ -1,6 +1,7 @@
 import pytest
+from metis_fn import monad
 
-from metis_app import error, pdp, pip, monad
+from metis_app import error, pdp, pip
 
 
 class UnAuthorised(error.BaseError):

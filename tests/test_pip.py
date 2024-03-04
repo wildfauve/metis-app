@@ -1,4 +1,5 @@
-from metis_app import pip, app, subject_token, monad
+from metis_fn import monad
+from metis_app import pip, app, subject_token
 
 from .shared import *
 

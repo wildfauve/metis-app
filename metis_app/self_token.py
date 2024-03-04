@@ -150,7 +150,7 @@ def token_service(bearer_token):
 
     if bearer_token:
         not_in_wind = not_in_token_retry_window(bearer_token)
-        token_state = (crypto.bearer_token_valid(bearer_token), crypto.parse_generate_id_token(bearer_token).value.exp)
+        token_state = (crypto.bearer_token_valid(bearer_token), crypto.parse_generate_id_token(bearer_token).value.exp())
     else:
         not_in_wind = None
         token_state = ("No Token", "No Exp")

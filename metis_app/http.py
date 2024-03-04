@@ -2,7 +2,7 @@ from typing import Dict, Tuple
 from pymonad.tools import curry
 import requests
 
-from metis_app import monad
+from metis_fn import monad
 from . import error
 
 class HttpError(error.BaseError):

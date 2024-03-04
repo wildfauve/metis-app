@@ -1,4 +1,4 @@
-from metis_app import circuit, monad
+from metis_fn import monad
 
 from .shared import *
 

@@ -2,7 +2,7 @@ import os
 import pytest
 import time_machine
 
-from metis_fn import fn, monad, chronos
+from metis_fn import fn, monad
 
 from .shared import *
 
@@ -69,8 +69,7 @@ def test_token_persisted_in_provider(set_up_token_config_with_provider, set_up_e
     assert result.value.jwt == token.value.value
 
 
-def it_refreshes_the_token_from_cache_when_not_in_env(dynamo_mock_empty,
-                                                      set_up_token_config_with_provider,
+def it_refreshes_the_token_from_cache_when_not_in_env(set_up_token_config_with_provider,
                                                       set_up_env,
                                                       identity_request_mock,
                                                       generate_valid_signed_jwt):
@@ -204,8 +203,7 @@ def it_sets_the_circuit_to_half_closed_from_open_on_success(set_up_token_config_
     traveller.stop()
 
 
-def test_with_a_dynamo_backed_circuit(dynamo_mock_empty,
-                                      set_up_env,
+def test_with_a_dynamo_backed_circuit(set_up_env,
                                       identity_request_mock,
                                       generate_expired_signed_jwt):
 
@@ -219,8 +217,7 @@ def test_with_a_dynamo_backed_circuit(dynamo_mock_empty,
 
     assert( cir.value.circuit_state) == 'closed'
 
-def test_with_a_dynamo_backed_circuit_when_initialised(dynamo_mock_empty,
-                                                       set_up_env,
+def test_with_a_dynamo_backed_circuit_when_initialised(set_up_env,
                                                        identity_request_mock,
                                                        generate_expired_signed_jwt):
     repo.create_circuit('test-circuit')

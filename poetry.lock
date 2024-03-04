@@ -500,6 +500,20 @@ tzdata = ">=2020.1"
 test = ["time-machine (>=2.6.0)"]
 
 [[package]]
+name = "pino"
+version = "0.6.0"
+description = "Python json logger inspired by pino.js"
+optional = false
+python-versions = ">=3.6,<4.0"
+files = [
+    {file = "pino-0.6.0-py3-none-any.whl", hash = "sha256:b6ef45cd03ca082e89f728212c2fa664fb4888a01ae2fd644a83faf17a536c4b"},
+    {file = "pino-0.6.0.tar.gz", hash = "sha256:fa60dcf8a087cd6f191c730744dcc96be9f371aef8b3320c48cbf0ffd1415afd"},
+]
+
+[package.dependencies]
+style = ">=1.1.6,<2.0.0"
+
+[[package]]
 name = "pluggy"
 version = "1.4.0"
 description = "plugin and hook calling mechanisms for python"
@@ -609,6 +623,23 @@ pytest = ">=7.4.3"
 test = ["covdefaults (>=2.3)", "coverage (>=7.3.2)", "pytest-mock (>=3.12)"]
 
 [[package]]
+name = "pytest-mock"
+version = "3.12.0"
+description = "Thin-wrapper around the mock package for easier use with pytest"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pytest-mock-3.12.0.tar.gz", hash = "sha256:31a40f038c22cad32287bb43932054451ff5583ff094bca6f675df2f8bc1a6e9"},
+    {file = "pytest_mock-3.12.0-py3-none-any.whl", hash = "sha256:0972719a7263072da3a21c7f4773069bcc7486027d7e8e1f81d98a47e701bc4f"},
+]
+
+[package.dependencies]
+pytest = ">=5.0"
+
+[package.extras]
+dev = ["pre-commit", "pytest-asyncio", "tox"]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
@@ -682,6 +713,17 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 files = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
+]
+
+[[package]]
+name = "style"
+version = "1.1.6"
+description = "🌈 Terminal string styling"
+optional = false
+python-versions = "*"
+files = [
+    {file = "style-1.1.6-py2.py3-none-any.whl", hash = "sha256:48deb552717e4a38e607e5c667b89f07f4eca5bce94dbaabb66707bf395a2eb6"},
+    {file = "style-1.1.6.tar.gz", hash = "sha256:d0ad01f3688b83e7fcbb305123df26f7018adf41babe2c12e4b9a68d4e598eb5"},
 ]
 
 [[package]]
@@ -822,4 +864,4 @@ test = ["pytest"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "3d15476e976b3aa66bc4f39e2ece8935bf4901e5eb2de085a97fee67851f20e6"
+content-hash = "80907697cd2175ef82a5b23f8bcb3c5ae06cd7ae2c894210762b44e275613f54"
