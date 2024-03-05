@@ -135,11 +135,6 @@ def get_parameter(key, client, with_decryption: bool = True):
                                 WithDecryption=with_decryption)
 
 
-@monad.monadic_try(name="get_parameter", exception_test_fn=aws_error_test_fn)
-def get_parameter(key, client):
-    return client.get_parameter(Name=parameter_link(key), WithDecryption=True)
-
-
 @monad.monadic_try(name="put parameter",
                    exception_test_fn=aws_error_test_fn,
                    error_cls=error.ParameterStoreError)
