@@ -15,6 +15,7 @@ class MockAwsClient():
 
 
 class MockSsm(MockAwsClient):
+    parameters = {}
 
     response = None
 
@@ -25,10 +26,17 @@ class MockSsm(MockAwsClient):
     def get_parameters_by_path(self, Path, WithDecryption, Recursive):
         return type(self).response
 
+    def put_parameter(self, Name, Value, Type, Overwrite=False):
+        self.__class__.parameters[Name] = Value
+        return {
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200}
+        }
+
 
 class MockBoto3():
     def __init__(self, mock_client=MockAwsClient):
-        self.mock_client= mock_client
+        self.mock_client = mock_client
 
     def client(self, service, region_name):
         return self.mock_client().client(service, region_name)

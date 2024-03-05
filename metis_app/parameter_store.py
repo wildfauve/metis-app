@@ -1,13 +1,31 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import Tuple, Callable
+from typing import Callable
 import os
-from pymonad.tools import curry
-from metis_fn import monad, fn
+from metis_fn import monad, fn, singleton
 from metis_app import aws_client_helpers, error
 
 SecureString = "SecureString"
 String = "String"
+
+
+class ParameterConfiguration(singleton.Singleton):
+    """
+    Optionally set up configuration in the situation where keys can be passed in without a path.
+    The default path is configured here.
+    """
+
+    def configure(self,
+                  root_path: str,
+                  update_test_fn: Callable | None = fn.identity):
+        self.root_path = root_path
+        self.update_test_fn = update_test_fn
+        pass
+
+    def fn_for_update_test(self):
+        if (f := getattr(self, 'update_test_fn', None)):
+            return f
+        return fn.identity
 
 
 @dataclass
@@ -126,7 +144,7 @@ def get_parameter(key, client):
                    exception_test_fn=aws_error_test_fn,
                    error_cls=error.ParameterStoreError)
 def put_parameter(value_type, key, value, client):
-    if not _is_absolute_path(key) and _is_in_env(key):
+    if ParameterConfiguration().fn_for_update_test()(key):
         return update_parameter(value_type, key, value, client)
     return create_parameter(value_type, key, value, client)
 
@@ -140,7 +158,7 @@ def create_parameter(value_type, key, param, client):
 
 
 def update_parameter(value_type, key, value, client):
-    result = client.put_parameter(Name=parameter_link(key),
+    result = client.put_parameter(Name=key if _is_absolute_path(key) else parameter_link(key),
                                   Value=value,
                                   Type=value_type,
                                   Overwrite=True)
@@ -155,8 +173,8 @@ def parameter_link(key):
     return "{}{}".format(parameter_path(), key)
 
 
-def _is_in_env(key):
-    return getattr(env.Env, key)()
+def parameter_path():
+    return ParameterConfiguration().root_path
 
 
 def _is_absolute_path(key):

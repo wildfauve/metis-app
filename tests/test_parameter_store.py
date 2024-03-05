@@ -23,6 +23,75 @@ def test_can_inject_ssm_client():
     assert os.environ.get('IDENTITY_TOKEN_ENDPOINT') == "https://test.host/token"
 
 
+def test_write_and_mutate_env(setup_aws_ctx):
+    os.environ.pop('A_PARAM', None)
+    key = '/test/test_function/function_namespace/environment/A_PARAM'
+    writer = parameter_store.writer(key, mutate_env=True, value_type=parameter_store.SecureString)
+
+    result = writer("TEST")
+    assert result.is_right
+    assert result.value.state == "ok"
+    assert result.value.name == "A_PARAM"
+    assert result.value.value == "TEST"
+
+    assert os.environ.get('A_PARAM') == "TEST"
+
+
+def test_write_and_dont_mutate_env(setup_aws_ctx):
+    os.environ.pop('A_PARAM', None)
+    key = '/test/test_function/function_namespace/environment/A_PARAM'
+    writer = parameter_store.writer(key, mutate_env=False, value_type=parameter_store.SecureString)
+
+    result = writer("TEST")
+    assert result.is_right
+
+    assert not os.environ.get('A_PARAM', None)
+
+
+def test_use_relative_keys_on_write(setup_aws_ctx):
+    def is_in_env(param):
+        return os.environ.get('A_PARAM', None)
+
+    root_path = "/test/test_function/function_namespace/environment/"
+
+
+    parameter_store.ParameterConfiguration().configure(root_path=root_path, update_test_fn=is_in_env)
+
+    os.environ.pop('A_PARAM', None)
+    key = 'A_PARAM'
+    writer = parameter_store.writer(key, mutate_env=True, value_type=parameter_store.SecureString)
+
+    result = writer("TEST")
+
+    assert result.is_right
+    assert result.value.state == "ok"
+    assert result.value.name == "A_PARAM"
+    assert result.value.value == "TEST"
+
+    assert os.environ.get('A_PARAM') == "TEST"
+
+
+def test_use_relative_keys_on_write_and_update(setup_aws_ctx):
+    def is_in_env(param):
+        return os.environ.get('A_PARAM', None)
+
+    root_path = "/test/test_function/function_namespace/environment/"
+    parameter_store.ParameterConfiguration().configure(root_path=root_path, update_test_fn=is_in_env)
+    os.environ.pop('A_PARAM', None)
+    key = 'A_PARAM'
+
+    writer = parameter_store.writer(key, mutate_env=True, value_type=parameter_store.SecureString)
+
+    result1 = writer("TEST")
+
+    assert result1.is_right
+    assert os.environ.get('A_PARAM') == "TEST"
+
+    result2 = writer("TEST-UPDATE")
+
+    assert result2.is_right()
+    assert os.environ.get('A_PARAM') == "TEST-UPDATE"
+
 
 @pytest.fixture
 def setup_aws_ctx():
