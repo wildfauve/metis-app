@@ -22,7 +22,7 @@ class MockSsm(MockAwsClient):
     def response(cls, response):
         cls.response = response
 
-    def get_parameters_by_path(self, Path, WithDecryption):
+    def get_parameters_by_path(self, Path, WithDecryption, Recursive):
         return type(self).response
 
 

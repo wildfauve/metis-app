@@ -16,7 +16,7 @@ def test_initialises_env_from_ps(setup_aws_ctx):
 
 def test_can_inject_ssm_client():
     parameter_store.set_env_from_parameter_store(path='/test/test_function/function_namespace/environment/',
-                                                 ssm_client=mock_ssm_with_response(ssm_helpers.ssm_param_response()))
+                                                 client=mock_ssm_with_response(ssm_helpers.ssm_param_response()))
 
     assert os.environ.get('CLIENT_ID') == "id"
     assert os.environ.get('CLIENT_SECRET') == "secret"

@@ -24,3 +24,7 @@ class BaseError(Exception):
 
     def print(self):
         print(f"{self.message}\n\n{self.traceback}")
+
+
+class ParameterStoreError(BaseError):
+    ...
