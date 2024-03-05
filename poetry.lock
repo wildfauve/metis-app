@@ -340,18 +340,19 @@ files = [
 arrow = ">=0.15.0"
 
 [[package]]
-name = "jwcrypto"
-version = "1.5.4"
-description = "Implementation of JOSE Web standards"
+name = "metis-crypto"
+version = "0.1.0"
+description = ""
 optional = false
-python-versions = ">= 3.8"
+python-versions = ">=3.11,<4.0"
 files = [
-    {file = "jwcrypto-1.5.4.tar.gz", hash = "sha256:0815fbab613db99bad85691da5f136f8860423396667728a264bcfa6e1db36b0"},
+    {file = "metis_crypto-0.1.0-py3-none-any.whl", hash = "sha256:5f88bd7a36ba4c34f5fe92c347da7ffa31c10c7d438dc3fd1920b9b80959b4fc"},
+    {file = "metis_crypto-0.1.0.tar.gz", hash = "sha256:1e4fb67e026e48091fd9e0e93b59d531bde55c66ecbaf6380b7b0d18342c9b96"},
 ]
 
 [package.dependencies]
-cryptography = ">=3.4"
-typing_extensions = ">=4.5.0"
+cryptography = ">=42.0.5,<43.0.0"
+typing-extensions = ">=4.10.0,<5.0.0"
 
 [[package]]
 name = "metis-fn"
@@ -864,4 +865,4 @@ test = ["pytest"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "80907697cd2175ef82a5b23f8bcb3c5ae06cd7ae2c894210762b44e275613f54"
+content-hash = "84c619aba23c731daafec461a78e3f1ef137e4b5733ec3c290249b4dec31faf3"

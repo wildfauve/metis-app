@@ -1,5 +1,5 @@
 from typing import Tuple, Protocol, Union, Callable
-from jwcrypto import jwk, jwt
+from metis_crypto import jwk, jwt
 from pymonad.tools import curry
 from simple_memory_cache import GLOBAL_CACHE
 import re

@@ -2,7 +2,7 @@ from metis_fn import monad
 from metis_app import subject_token, http_adapter
 from metis_app import crypto as Cy
 
-from jwcrypto import jwk, jwt
+from metis_crypto import jwk, jwt
 import time
 
 from .shared import *

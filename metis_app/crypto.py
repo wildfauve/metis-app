@@ -1,6 +1,6 @@
 import json
 from typing import Tuple, Union, Optional
-from jwcrypto import jwk, jwt
+from metis_crypto import jwk, jwt
 from pymonad.tools import curry
 import collections
 
