@@ -1,3 +1,4 @@
+import base64
 from typing import List, Dict, Tuple, Callable, Union
 
 from metis_fn import monad, fn, chronos
@@ -189,7 +190,7 @@ def build_http_event(event: Dict) -> app_value.ApiGatewayRequestEvent:
     """
     kind = route_from_http_event(event['httpMethod'], event['path'])
     template, route_fn, opts = route_fn_from_kind(kind)
-    body = opts['body_parser'](event['body']) if opts and opts['body_parser'] else event['body']
+    body = _body_parser(opts, event)
     return app_value.ApiGatewayRequestEvent(kind=kind,
                                             request_function=route_fn,
                                             event=event,
@@ -202,6 +203,22 @@ def build_http_event(event: Dict) -> app_value.ApiGatewayRequestEvent:
                                             web_session=app_web_session.WebSession().session_from_headers(
                                                 event['headers']))
 
+
+def _body_parser(route_options, event):
+    body = event.get('body')
+    if route_options and (parse_fn := route_options.get('body_parser', None)):
+        return parse_fn(body)
+    if _string_bool(event.get('isBase64Encoded')):
+        return base64.b64decode(body).decode('utf-8')
+    return body
+
+
+def _string_bool(string_bool_or_bool):
+    if isinstance(string_bool_or_bool, bool):
+        return string_bool_or_bool
+    if string_bool_or_bool.lower() == "true":
+        return True
+    return False
 
 def route_from_http_event(method, path):
     return ('API', method, path)

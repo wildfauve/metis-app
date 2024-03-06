@@ -1,6 +1,7 @@
 import pytest
 import json
 
+
 @pytest.fixture
 def s3_event_hello():
     return {
@@ -8,6 +9,7 @@ def s3_event_hello():
             {'s3': {'bucket': {'name': 'hello'}, 'object': {'key': 'hello_file.json'}}}
         ]
     }
+
 
 @pytest.fixture
 def api_gateway_event_get():
@@ -134,6 +136,7 @@ def api_gateway_event_get():
         }
     }
 
+
 @pytest.fixture
 def api_gateway_event_get_nested_resource():
     return {
@@ -161,6 +164,7 @@ def api_gateway_event_get_nested_resource():
         }
     }
 
+
 @pytest.fixture
 def api_gateway_event_post_with_json_body():
     return {
@@ -181,6 +185,29 @@ def api_gateway_event_post_with_json_body():
         "headers": {},
         "requestContext": {
             "path": "/resourceBase/resource/uuid1/resource/resource-uuid2",
+            "resourcePath": "/{proxy+}",
+            "httpMethod": "POST",
+            "apiId": "1234567890",
+            "protocol": "HTTP/1.1"
+        }
+    }
+
+
+def api_gateway_event_with_base64_encoded_body():
+    return {
+        "body": "Z3JhbnRfdHlwZT1jbGllbnRfY3JlZGVudGlhbHM=",
+        "resource": "/{proxy+}",
+        "path": "/oauth/token",
+        "httpMethod": "POST",
+        "isBase64Encoded": "True",
+        "queryStringParameters": {},
+        "multiValueQueryStringParameters": {},
+        "pathParameters": {"proxy": "/oauth/token"},
+        "stageVariables": {},
+        "headers": {"Content-Type": "application/x-www-form-urlencoded",
+                        "Authorization": "Basic SOME-AUTH-HEADER"},
+        "requestContext": {
+            "path": "/oauth/token",
             "resourcePath": "/{proxy+}",
             "httpMethod": "POST",
             "apiId": "1234567890",

@@ -185,6 +185,11 @@ def it_identifies_an_s3_event(s3_event_hello):
     assert event.objects[0].key == 'hello_file.json'
 
 
+def it_decodes_the_body_when_base64_encoded(s3_event_hello):
+    event = app.event_factory(event=api_gateway_event_with_base64_encoded_body())
+    assert event.body == 'grant_type=client_credentials'
+
+
 def it_identifies_an_s3_event_using_custom_factory(s3_event_hello):
     event = app.event_factory(event=s3_event_hello, factory_overrides={'s3': overrided_s3_factory})
 
