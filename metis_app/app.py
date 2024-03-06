@@ -1,4 +1,5 @@
 import base64
+from functools import reduce
 from typing import List, Dict, Tuple, Callable, Union
 
 from metis_fn import monad, fn, chronos
@@ -190,12 +191,13 @@ def build_http_event(event: Dict) -> app_value.ApiGatewayRequestEvent:
     """
     kind = route_from_http_event(event['httpMethod'], event['path'])
     template, route_fn, opts = route_fn_from_kind(kind)
+    hdrs = _standardise_headers(event['headers'])
     body = _body_parser(opts, event)
     return app_value.ApiGatewayRequestEvent(kind=kind,
                                             request_function=route_fn,
                                             event=event,
                                             method=event['httpMethod'],
-                                            headers=event['headers'],
+                                            headers=hdrs,
                                             path=event['path'],
                                             path_params=path_template_to_params(kind[2], template[2]),
                                             body=body,
@@ -213,12 +215,22 @@ def _body_parser(route_options, event):
     return body
 
 
+def _standardise_headers(hdrs):
+    def to_lower(acc, kv):
+        k, v = kv
+        acc[k.lower()] = v
+        return acc
+
+    return reduce(to_lower, hdrs.items(), {})
+
+
 def _string_bool(string_bool_or_bool):
     if isinstance(string_bool_or_bool, bool):
         return string_bool_or_bool
     if string_bool_or_bool.lower() == "true":
         return True
     return False
+
 
 def route_from_http_event(method, path):
     return ('API', method, path)

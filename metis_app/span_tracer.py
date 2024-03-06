@@ -31,4 +31,4 @@ class SpanTracer():
 
 
 def init_tracing(env):
-    return Tracer(env)
+    return SpanTracer(env)

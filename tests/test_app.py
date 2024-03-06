@@ -47,7 +47,6 @@ def it_executes_the_noop_path():
                           params_parser=noop_callable,
                           pip_initiator=noop_callable,
                           handler_guard_fn=noop_callable)
-
     assert result['statusCode'] == 400
     assert result['headers'] == {'Content-Type': 'application/json'}
     assert result['body'] == '{"error": "no matching route", "code": 404, "step": "", "ctx": {}}'
@@ -185,9 +184,14 @@ def it_identifies_an_s3_event(s3_event_hello):
     assert event.objects[0].key == 'hello_file.json'
 
 
-def it_decodes_the_body_when_base64_encoded(s3_event_hello):
+def it_decodes_the_body_when_base64_encoded():
     event = app.event_factory(event=api_gateway_event_with_base64_encoded_body())
     assert event.body == 'grant_type=client_credentials'
+
+
+def it_downcases_all_headers():
+    event = app.event_factory(event=api_gateway_event_with_base64_encoded_body())
+    assert set(event.headers.keys()) == {'content-type', 'authorization'}
 
 
 def it_identifies_an_s3_event_using_custom_factory(s3_event_hello):
