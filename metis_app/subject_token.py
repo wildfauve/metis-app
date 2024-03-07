@@ -52,6 +52,8 @@ def parse_generate_id_token(serialised_jwt):
     """
     Takes an encoded JWT and returns an verified id_token
     """
+    if not serialised_jwt:
+        return monad.Left(JwksGetError('No JWT found', code=401))
     return cacheable_jwks() >> crypto.decode_jwt(claims_to_assert(), serialised_jwt) >> crypto.to_id_token
 
 
@@ -146,6 +148,8 @@ def parse_bearer_token(hdrs: dict) -> str:
     Support Camel and lowercase versions of the header
     """
     auth_hdr = hdrs.get(event_authorisation_hdr_key, hdrs.get(event_authorisation_hdr_key.lower()))
+    if not auth_hdr:
+        return None
     return re.search(r'(Bearer)\s(.*)', auth_hdr).group(2)
 
 

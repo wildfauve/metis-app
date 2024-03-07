@@ -22,7 +22,14 @@ def test_returns_pip_with_valid_token(api_gateway_event_get, jwks_mock):
 
 
 def test_failures_to_validate_token(api_gateway_event_get, jwks_mock):
-    result = pip.pip(pip.PipConfig(), api_request(api_gateway_event_get, "bad_token"))
+    result = pip.pip(pip.PipConfig(), api_request(api_gateway_event_get, token="bad_token"))
+
+    assert not result.token_valid()
+
+
+def test_fails_find_a_token(api_gateway_event_get, jwks_mock):
+    api_gateway_event_get['headers'].pop('Authorization')
+    result = pip.pip(pip.PipConfig(), api_request(api_gateway_event_get, no_token=True))
 
     assert not result.token_valid()
 
@@ -31,7 +38,7 @@ def test_dont_get_userinfo_on_invalid_token(api_gateway_event_get, jwks_mock):
     config = pip.PipConfig(userinfo=True,
                            userinfo_get_fn=get_userinfo_mock)
 
-    result = pip.pip(config, api_request(api_gateway_event_get, "bad_token"))
+    result = pip.pip(config, api_request(api_gateway_event_get, token="bad_token"))
 
     assert not result.token_valid()
     assert not result.subject
@@ -70,9 +77,10 @@ def set_up_token_config():
                                                  asserted_iss="https://idp.example.com/")
 
 
-def api_request(event, token=None):
-    token_to_add = token if token else crypto_helpers.generate_signed_jwt(crypto_helpers.Idp().jwk)
-    event['headers']['Authorization'] = event['headers']['Authorization'].replace("{}", token_to_add)
+def api_request(event, no_token: bool = False, token=None):
+    if not no_token:
+        token_to_add = token if token else crypto_helpers.generate_signed_jwt(crypto_helpers.Idp().jwk)
+        event['headers']['Authorization'] = event['headers']['Authorization'].replace("{}", token_to_add)
     return app.Request(event=app.event_factory(event), context={}, tracer={})
 
 
