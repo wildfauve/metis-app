@@ -1,6 +1,6 @@
 import base64
 from functools import reduce
-from typing import List, Dict, Tuple, Callable, Union
+from typing import List, Dict, Tuple, Callable, Union, Any
 
 from metis_fn import monad, fn, chronos
 from . import (span_tracer,
@@ -314,29 +314,33 @@ def responder(request_or_error: monad.Either) -> dict:
 
 
 def _body_from_pipeline_response(request):
-    body = {'headers': build_headers(request.lift().response_headers),
-            'multiValueHeaders': build_multi_headers(request.lift().event)}
+    response = {'multiValueHeaders': build_multi_headers(request.lift().event)}
 
     if request.is_right() and request.value.response.is_right():
         # When the processing pipeline completes successfully and the response Dict is a success
-        body['statusCode'] = request.value.status_code.value if request.value.status_code else 200
-        body['body'] = request.value.response.value.serialise()
+        body = request.value.response.value
+        response['headers'] = build_headers(request.value.response_headers, body)
+        response['statusCode'] = request.value.status_code.value if request.value.status_code else 200
+        response['body'] = body.serialise()
         status = 'ok'
     elif request.is_right() and request.value.response.is_left():
         # When the processing pipeline completes successfully but the response Dict is a failure
-        body['statusCode'] = _error_status_code(request.value)
-        body['body'] = request.value.response.error().error().serialise()
+        body = request.value.response.error().error()
+        response['headers'] = build_headers(request.value.response_headers, body)
+        response['statusCode'] = _error_status_code(request.value)
+        response['body'] = body.serialise()
         status = 'fail'
     else:
         # When the processing pipeline fails, with the error in the 'error' property of the request.
-        body[
-            'statusCode'] = request.error().status_code.value if request.error().status_code else DEFAULT_FAILURE_HTTP_CODE
-        body['body'] = request.error().error.error().serialise()
+        body = request.error().error.error()
+        response['headers'] = build_headers(request.error().response_headers, body)
+        response['statusCode'] = request.error().status_code.value if request.error().status_code else DEFAULT_FAILURE_HTTP_CODE
+        response['body'] = body.serialise()
         status = 'fail'
 
     logger.info(msg="End Handler", tracer=request.lift().tracer, ctx={}, status=status)
 
-    return body
+    return response
 
 
 def _body_from_base_error(error: AppError):
@@ -358,8 +362,12 @@ def _error_status_code(request: Request):
     return DEFAULT_SUCCESS_HTTP_CODE
 
 
-def build_headers(hdrs: Dict) -> Dict:
-    return {**hdrs, **DEFAULT_RESPONSE_HDRS} if hdrs else DEFAULT_RESPONSE_HDRS
+def build_headers(hdrs: dict | None = None, returning_serialiser: Any | None = None) -> dict:
+    if not hdrs and not returning_serialiser:
+        return {}
+    provided_headers = hdrs if hdrs else {}
+    body_content_type = {'Content-Type': returning_serialiser.content_type} if returning_serialiser else {}
+    return {**provided_headers, **body_content_type}
 
 
 def build_multi_headers(event: app_value.RequestEvent) -> Dict:

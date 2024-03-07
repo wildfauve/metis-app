@@ -22,7 +22,6 @@ def it_executes_a_pipeline_from_s3_event(set_up_env,
                           params_parser=noop_callable,
                           pip_initiator=noop_callable,
                           handler_guard_fn=noop_callable)
-
     assert result['statusCode'] == 200
     assert result['headers']['Content-Type'] == 'application/json'
     assert result['body'] == '{"hello": "there"}'
