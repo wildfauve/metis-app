@@ -93,7 +93,6 @@ def it_returns_a_subject_activities_401_unauthorised(set_up_env,
                           params_parser=noop_callable,
                           pip_initiator=pip_wrapper,
                           handler_guard_fn=failed_token_expectation)
-
     assert result['statusCode'] == 401
 
 
@@ -113,6 +112,23 @@ def it_returns_a_invalid_token_401_unauthorised(set_up_env,
                           handler_guard_fn=failed_token_expectation)
 
     assert result['statusCode'] == 401
+
+
+def test_fails_find_a_token(set_up_env,
+                            api_gateway_event_get):
+    api_gateway_event_get['headers'].pop('Authorization')
+    api_gateway_event_get['path'] = '/resourceBase/JWTBang!/uuid1'
+
+    result = app.pipeline(event=api_gateway_event_get,
+                          context={},
+                          env=Env().env,
+                          params_parser=noop_callable,
+                          pip_initiator=pip_wrapper,
+                          handler_guard_fn=noop_callable)
+
+    body = json.loads(result['body'])
+    assert body['error'] == "Unauthorised"
+    assert body['code'] == 401
 
 
 #
@@ -260,12 +276,29 @@ def handler_404(request):
     return monad.Left(request.replace('error', app.AppError(message='no matching route', code=404)))
 
 
+@app.route(pattern=('API', 'GET', '/resourceBase/JWTBang!/{id1}'))
+def get_resource_with_jwt_failure(request):
+    @pdp.token_pdp_decorator(name="app-test",
+                             namespace="Testing",
+                             error_cls=app.AppError)
+    def command(request):
+        if request.event:
+            pass
+        request.status_code = app_value.HttpStatusCode.CREATED
+        return monad.Right(request.replace('response', monad.Right(app.DictToJsonSerialiser({'resource': 'uuid1'}))))
+
+    return command(request)
+
+
 @app.route(pattern=('API', 'GET', '/resourceBase/resource/{id1}'))
 def get_resource(request):
-    if request.event:
-        pass
-    request.status_code = app_value.HttpStatusCode.CREATED
-    return monad.Right(request.replace('response', monad.Right(app.DictToJsonSerialiser({'resource': 'uuid1'}))))
+    def command(request):
+        if request.event:
+            pass
+        request.status_code = app_value.HttpStatusCode.CREATED
+        return monad.Right(request.replace('response', monad.Right(app.DictToJsonSerialiser({'resource': 'uuid1'}))))
+
+    return command(request)
 
 
 @app.route(pattern=('API', 'GET', '/resourceBase/authz_resource/{id1}'))

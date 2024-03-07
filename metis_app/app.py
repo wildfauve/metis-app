@@ -297,7 +297,7 @@ def event_kind_to_log_ctx(request: app_value.Request) -> str:
     return "{event_type}:{kind}".format(event_type=type(request.event).__name__, kind=request.event.kind)
 
 
-def responder(request):
+def responder(request_or_error: monad.Either) -> dict:
     """
     The app_value.Request object must be returned with the following outcomes:
     + Wrapped in an Either.
@@ -306,8 +306,14 @@ def responder(request):
     + The app_value.Request can be Right, but the contained response is left.  In this case the response needs to implement an
       error() fn which returns an object serialisable to JSON.
     + Otherwise, app_value.Request.error() should be an Either-wrapping an object which responds to error() which is JSON serialisable
+    + Finally, request_or_error may be a common-or-garden monad[app.AppError]
     """
+    if request_or_error.is_left() and isinstance(request_or_error.error(), Exception):
+        return _body_from_base_error(request_or_error.error())
+    return _body_from_pipeline_response(request_or_error)
 
+
+def _body_from_pipeline_response(request):
     body = {'headers': build_headers(request.lift().response_headers),
             'multiValueHeaders': build_multi_headers(request.lift().event)}
 
@@ -330,6 +336,17 @@ def responder(request):
 
     logger.info(msg="End Handler", tracer=request.lift().tracer, ctx={}, status=status)
 
+    return body
+
+
+def _body_from_base_error(error: AppError):
+    body = {'headers': {}, 'multiValueHeaders': {}}
+    body['statusCode'] = error.code
+    body['body'] = error.serialise()
+
+    logger.info(msg="End Handler--with base Error",
+                ctx={'error': error.message},
+                status='fail')
     return body
 
 
