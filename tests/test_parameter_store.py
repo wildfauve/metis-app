@@ -7,6 +7,10 @@ from metis_app import parameter_store, aws_client_helpers
 from .shared import aws_helpers, ssm_helpers
 
 
+def setup_function():
+    aws_client_helpers.invalidate_cache()
+
+
 def test_initialises_env_from_ps(setup_aws_ctx):
     parameter_store.set_env_from_parameter_store(path='/test/test_function/function_namespace/environment/')
     
@@ -96,8 +100,6 @@ def test_use_relative_keys_on_write_and_update(setup_aws_ctx):
 @pytest.fixture
 def setup_aws_ctx():
     services = {'ssm': {}}
-
-    aws_client_helpers.invalidate_cache()
 
     ssm_client = mock_ssm_with_response(ssm_helpers.ssm_param_response())
 

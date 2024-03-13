@@ -24,13 +24,14 @@ Then get the context when required:
 
 aws_cache = GLOBAL_CACHE.MemoryCachedVar('aws_cache')
 
+
 @dataclass
 class AwsCtx():
     s3: Optional[Any] = None
     ssm: Optional[Any] = None
     event_bridge: Optional[Any] = None
     table: Optional[Any] = None
-
+    cognito_idp: Optional[Any] = None
 
 
 class AwsClientConfig(singleton.Singleton):
@@ -48,6 +49,7 @@ class AwsClientConfig(singleton.Singleton):
 def aws_ctx():
     return aws_cache.get()
 
+
 def invalidate_cache():
     aws_cache.invalidate()
     pass
@@ -56,30 +58,35 @@ def invalidate_cache():
 @aws_cache.on_first_access
 def initiate_ctx() -> AwsCtx:
     ctx = reduce(client_builder, AwsClientConfig().services.items(), {})
-
-    # AwsCtx(s3=boto3.client('s3', region_name=Env.region_name),
-    #        ssm= boto3.client('ssm', region_name=Env.region_name),
-    #        event_bridge=boto3.client('events', region_name=Env.region_name),
-    #        table=boto3.resource('dynamodb', region_name=Env.region_name).Table(Env.dynamodb_table()))
-
     return AwsCtx(**ctx)
 
 
 def client_builder(injector, service):
     return {**injector, **getattr(sys.modules[__name__], service[0])(service[1])}
 
+
 def s3(args):
     return {'s3': AwsClientConfig().aws_client_lib.client('s3', region_name=AwsClientConfig().region_name)}
+
 
 def ssm(args):
     return {'ssm': AwsClientConfig().aws_client_lib.client('ssm', region_name=AwsClientConfig().region_name)}
 
+
 def events(args):
-    return {'event_bridge': AwsClientConfig().aws_client_lib.client('events', region_name=AwsClientConfig().region_name)}
+    return {
+        'event_bridge': AwsClientConfig().aws_client_lib.client('events', region_name=AwsClientConfig().region_name)}
+
 
 def dynamodb(args):
     return {'table': AwsClientConfig().aws_client_lib.resource('dynamodb', region_name=AwsClientConfig().region_name)
-                                                     .Table(args['table'])}
+    .Table(args['table'])}
+
+
+def cognito_idp(args):
+    return {'cognito_idp': AwsClientConfig().aws_client_lib.client('cognito-idp',
+                                                                   region_name=AwsClientConfig().region_name)}
+
 
 def result_status(try_result) -> str:
     statuses = {1: 'ok'}
