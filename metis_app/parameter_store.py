@@ -92,7 +92,7 @@ def get_parameter_from_store(key, with_decryption: bool = True):
 #
 
 def set_env(parameters):
-    return monad.Right(list(map(partial(set_env_var, True), parameters['Parameters'])))
+    return monad.Right(list(map(partial(set_env_var, True), parameters)))
 
 
 def test_set(results):
@@ -113,18 +113,35 @@ def set_env_var(mutate_env: bool, parameter) -> monad.Either[error.ParameterStor
 
 def aws_error_test_fn(result):
     statuses = {'200': True}
-    if result.is_right() and statuses.get(str(result.value['ResponseMetadata']['HTTPStatusCode']), None):
-        return result
+    if isinstance(result, monad.Either):
+        if result.is_right() and statuses.get(str(result.value['ResponseMetadata']['HTTPStatusCode']), None):
+            return result
     else:
-        return monad.Left(error.ParameterStoreError(result.value['ResponseMetadata']['HTTPHeaders']))
+        if statuses.get(str(result['ResponseMetadata']['HTTPStatusCode']), None):
+            return monad.Right(result)
+    return monad.Left(error.ParameterStoreError(result.value['ResponseMetadata']['HTTPHeaders']))
 
 
-@monad.monadic_try(name="get_parameters",
-                   exception_test_fn=aws_error_test_fn,
-                   error_cls=error.ParameterStoreError)
 def get_parameters(path, client):
-    result = client.get_parameters_by_path(Path=path, WithDecryption=True, Recursive=True)
-    return result
+    return get_parameters_paged(path, client, None, [])
+
+
+def get_parameters_paged(path, client, token, parameters):
+    base_kwargs = {'Path': path,
+                   'WithDecryption': True,
+                   'Recursive': True}
+    kwargs = base_kwargs if not token else {**base_kwargs, **{'NextToken': token}}
+    result = aws_error_test_fn(client.get_parameters_by_path(**kwargs))
+    if result.is_left():
+        return result
+    if not result.value.get('NextToken'):
+        return monad.Right(parameters + result.value.get("Parameters"))
+
+    return get_parameters_paged(path,
+                                client,
+                                result.value.get('NextToken'),
+                                parameters + result.value.get("Parameters"))
+
 
 
 @monad.monadic_try(name="get_parameter",
@@ -174,6 +191,7 @@ def parameter_path():
 
 def _is_absolute_path(key):
     return "/" in key
+
 
 
 def ssm_client(ssm_client=None):
