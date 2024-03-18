@@ -19,3 +19,4 @@ def ssm_param_response():
              'DataType': 'text'}
         ], 'ResponseMetadata': {'HTTPStatusCode': 200, 'HTTPHeaders': {'server': 'amazon.com'}, 'RetryAttempts': 0}
     }
+

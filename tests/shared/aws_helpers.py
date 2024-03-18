@@ -1,3 +1,7 @@
+import pytest
+import boto3
+from metis_app import aws_client_helpers
+
 class MockAwsClient():
     def client(self, service, region_name):
         self.service = service
@@ -43,3 +47,14 @@ class MockBoto3():
 
     def resource(self, service, region_name):
         return self.mock_client().resource(service, region_name)
+
+
+@pytest.fixture
+def aws_ctx_with_boto():
+    services = {'ssm': {}}
+
+    aws_client_helpers.invalidate_cache()
+
+    aws_client_helpers.AwsClientConfig().configure(region_name="us-west-2",
+                                                   aws_client_lib=boto3,
+                                                   services=services)

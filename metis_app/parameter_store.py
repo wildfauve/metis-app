@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import Callable
+from typing import Callable, Protocol, Union
 import os
 from metis_fn import monad, fn, singleton
 from metis_app import aws_client_helpers, error
@@ -8,19 +8,52 @@ from metis_app import aws_client_helpers, error
 SecureString = "SecureString"
 String = "String"
 
+@dataclass
+class ParameterState:
+    state: str
+    name: str
+    value: str
+
+
+class ParameterEnvironmentProtocol(Protocol):
+
+    def __init__(self, root_path: str):
+        ...
+
+    def put_parameter(self,
+                      value_type: Union[String, SecureString],
+                      key: str,
+                      value: str,
+                      client: Callable) -> monad.Either:
+        ...
+
+    def set_parameters_in_env(self, parameters: list[dict]) -> monad.Either:
+        ...
+
+    def set_parameter_in_env(self, mutate_env: bool, parameter) -> monad.Either[
+        error.ParameterStoreError, ParameterState]:
+        ...
+
+
 
 class ParameterConfiguration(singleton.Singleton):
     """
     Optionally set up configuration in the situation where keys can be passed in without a path.
     The default path is configured here.
+    And where reading and writing to the os.environ space is to be overridden
     """
 
     def configure(self,
                   root_path: str,
-                  update_test_fn: Callable | None = fn.identity):
+                  update_test_fn: Callable | None = fn.identity,
+                  parameter_env_cls: ParameterEnvironmentProtocol | None = None):
         self.root_path = root_path
         self.update_test_fn = update_test_fn
+        self.parameter_env = parameter_env_cls(self.root_path) if parameter_env_cls else None
         pass
+
+    def param_env(self):
+        return None if not getattr(self, 'parameter_env', None) else self.parameter_env
 
     def fn_for_update_test(self):
         if (f := getattr(self, 'update_test_fn', None)):
@@ -28,11 +61,60 @@ class ParameterConfiguration(singleton.Singleton):
         return fn.identity
 
 
-@dataclass
-class ParameterState:
-    state: str
-    name: str
-    value: str
+
+def aws_error_test_fn(result):
+    statuses = {'200': True}
+    if isinstance(result, monad.Either):
+        if result.is_right() and statuses.get(str(result.value['ResponseMetadata']['HTTPStatusCode']), None):
+            return result
+    else:
+        if statuses.get(str(result['ResponseMetadata']['HTTPStatusCode']), None):
+            return monad.Right(result)
+    return monad.Left(error.ParameterStoreError(result.value['ResponseMetadata']['HTTPHeaders']))
+
+
+
+class OsEnv(ParameterEnvironmentProtocol):
+
+    def __init__(self, root_path):
+        self.root_path = root_path
+
+    @monad.monadic_try(name="put parameter",
+                       exception_test_fn=aws_error_test_fn,
+                       error_cls=error.ParameterStoreError)
+    def put_parameter(self, value_type, key, value, client):
+        if ParameterConfiguration().fn_for_update_test()(key):
+            return self._update_parameter(value_type, key, value, client)
+        return self._create_parameter(value_type, key, value, client)
+
+    def _create_parameter(self, value_type, key, param, client):
+        result = client.put_parameter(Name=key if _is_absolute_path(key) else parameter_link(key),
+                                      Value=param,
+                                      Type=value_type,
+                                      Overwrite=False)
+        return result
+
+    def _update_parameter(self, value_type, key, value, client):
+        result = client.put_parameter(Name=key if _is_absolute_path(key) else parameter_link(key),
+                                      Value=value,
+                                      Type=value_type,
+                                      Overwrite=True)
+        return result
+
+    def set_parameters_in_env(self, parameters: list[dict]) -> monad.Either:
+        return monad.Right(list(map(partial(self.set_parameter_in_env, True), parameters)))
+
+    def set_parameter_in_env(self, mutate_env: bool, parameter: dict) -> monad.Either[
+        error.ParameterStoreError, ParameterState]:
+        if not mutate_env:
+            return monad.Right(ParameterState(state="ok",
+                                              name=parameter['Name'],
+                                              value=parameter['Value']))
+        name = parameter['Name'].split("/")[-1]
+        os.environ[name] = parameter['Value']
+        return monad.Right(ParameterState(state="ok",
+                                          name=name,
+                                          value=parameter['Value']))
 
 
 """
@@ -42,6 +124,17 @@ Reads from a Path in AWS Parameter Store (SSM) and injects each parameter as an 
 Provide the path to the variables.
 The SSM client is expected to be available via the aws_client_helpers.aws_ctx function, or optionally, it can be passed in
 """
+
+
+def set_parameter_env_from_parameter_store(path: str,
+                                           client=None):
+    if not ParameterConfiguration().param_env():
+        return set_env_from_parameter_store(path, client)
+    result = (monad.Right(ssm_client(client)) >>
+              partial(get_parameters, path) >>
+              ParameterConfiguration().param_env().set_parameters_in_env >>
+              test_set)
+    return result
 
 
 def set_env_from_parameter_store(path: str, client=None):
@@ -71,13 +164,18 @@ def write(key: str,
           mutate_env: bool,
           value_type: str,
           value: str,
-          builder: Callable = fn.identity) -> monad.Either:
+          builder: Callable = fn.identity,
+          ) -> monad.Either:
     """
     Implements a cache style interface that take a key/value
     and writes it to Parameter Store
     """
+    if (param_env:=ParameterConfiguration().param_env()):
+        put_fn = param_env.put_parameter
+    else:
+        put_fn = put_parameter
     result = (monad.Right(ssm_client())
-              >> partial(put_parameter, value_type, key, value)
+              >> partial(put_fn, value_type, key, value)
               >> partial(build_parameter, key, value, builder)
               >> partial(set_env_var, mutate_env))
     return result
@@ -111,15 +209,6 @@ def set_env_var(mutate_env: bool, parameter) -> monad.Either[error.ParameterStor
                                       value=parameter['Value']))
 
 
-def aws_error_test_fn(result):
-    statuses = {'200': True}
-    if isinstance(result, monad.Either):
-        if result.is_right() and statuses.get(str(result.value['ResponseMetadata']['HTTPStatusCode']), None):
-            return result
-    else:
-        if statuses.get(str(result['ResponseMetadata']['HTTPStatusCode']), None):
-            return monad.Right(result)
-    return monad.Left(error.ParameterStoreError(result.value['ResponseMetadata']['HTTPHeaders']))
 
 
 def get_parameters(path, client):
@@ -141,7 +230,6 @@ def get_parameters_paged(path, client, token, parameters):
                                 client,
                                 result.value.get('NextToken'),
                                 parameters + result.value.get("Parameters"))
-
 
 
 @monad.monadic_try(name="get_parameter",
@@ -191,7 +279,6 @@ def parameter_path():
 
 def _is_absolute_path(key):
     return "/" in key
-
 
 
 def ssm_client(ssm_client=None):
