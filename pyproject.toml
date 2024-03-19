@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "metis-app"
-version = "0.3.8"
+version = "0.3.9"
 description = ""
 authors = ["Col Perks <wild.fauve@gmail.com>"]
 readme = "README.md"

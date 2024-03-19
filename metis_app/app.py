@@ -325,7 +325,8 @@ def _body_from_pipeline_response(request):
         status = 'ok'
     elif request.is_right() and request.value.response.is_left():
         # When the processing pipeline completes successfully but the response Dict is a failure
-        body = request.value.response.error().error()
+        # Get the error property from the response and serialise this.
+        body = request.value.response.error().error
         response['headers'] = build_headers(request.value.response_headers, body)
         response['statusCode'] = _error_status_code(request.value)
         response['body'] = body.serialise()
