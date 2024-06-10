@@ -1,13 +1,20 @@
 import json
 from typing import Dict, Union, Any, Callable
 from pino import pino
-import sys
-from functools import reduce
 import time
-from metis_fn import chronos
 
 from .tracer import Tracer
 from . import json_util
+from .observable import Observer
+
+
+class PowerToolsLoggerWrapper:
+
+    def __init__(self, lgr):
+        self.logger = lgr
+
+    def info(self, meta, msg):
+        self.logger.info(msg, **meta.get('ctx', {}))
 
 
 def info(msg: str, tracer: Tracer | None = None, status: str = 'ok', ctx: dict = {}) -> None:
@@ -60,6 +67,8 @@ def custom_pino_dump_fn(json_log):
 
 
 def logger():
+    if Observer().is_configured:
+        return PowerToolsLoggerWrapper(lgr=Observer().logger)
     return pino(bindings={"apptype": "prototype", "context": "main"}, dump_function=custom_pino_dump_fn)
 
 

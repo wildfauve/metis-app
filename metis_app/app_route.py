@@ -3,12 +3,14 @@ from pymonad.tools import curry
 
 from metis_fn import singleton, fn, monad
 
+from . import app
+
 
 class RouteMap(singleton.Singleton):
     routes = {}
 
-    def add_route(self, pattern: Union[str, Tuple[str,str,str]], fn: Callable, opts: Dict):
-        self.routes[pattern] = (fn, opts)
+    def add_route(self, pattern: Union[str, Tuple[str,str,str]], f: Callable, opts: Dict):
+        self.routes[pattern] = (f, opts)
         pass
 
     def no_route(self, return_template=False) -> Union[Callable, Tuple[str, Callable]]:
@@ -80,7 +82,7 @@ def route(pattern: Union[str, Tuple[str, str, str]], opts: Dict = None):
     Route Mapper
     """
     def inner(fn):
-        RouteMap().add_route(pattern=pattern, fn=fn, opts=opts)
+        RouteMap().add_route(pattern=pattern, f=fn, opts=opts)
     return inner
 
 

@@ -57,7 +57,7 @@ class WebSession():
         if not headers:
             return self
 
-        hdrs = headers.get('Cookie', None)
+        hdrs = headers.get('cookie', None)
 
         if not hdrs:
             return self

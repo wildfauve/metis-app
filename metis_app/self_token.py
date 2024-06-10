@@ -14,6 +14,9 @@ BEARER_TOKEN = "BEARER_TOKEN"  # Name of bearer token in PS
 
 _CTX = {}
 
+def env_set_up(env):
+    return all(getattr(env, var)() for var in expected_envs)
+
 
 class Error(Exception):
     def __init__(self, message="", name="", ctx={}, code=500, klass="", retryable=False):
@@ -76,11 +79,13 @@ class TokenConfig(singleton.Singleton):
     def configure(self,
                   token_persistence_provider: TokenPersistenceProviderProtocol,
                   env: Any,
+                  env_ready_test_fn: Callable = env_set_up,
                   circuit_state_provider: circuit.CircuitStateProviderProtocol = None,
                   window_width: int = default_window_width,
                   expiry_threshold: int = default_expiry_threshold) -> None:
         self.token_persistence_provider = token_persistence_provider
         self.env = env
+        self.env_ready_test_fn = env_ready_test_fn
         self.circuit_state_provider = circuit_state_provider
         self.window_width = window_width
         self.expiry_threshold = expiry_threshold
@@ -89,7 +94,7 @@ class TokenConfig(singleton.Singleton):
 
 def token(tracer: Tracer = None):
     _CTX['tracer'] = tracer
-    if not env_set_up(TokenConfig().env):
+    if not TokenConfig().env_ready_test_fn(TokenConfig().env):
         return monad.Left(TokenEnvError(message="Token can not the retrieved due to a failure in env setup"))
     result = get()
     if result.is_right() and (result.value.expired() or in_token_retry_window(result.value)):
@@ -250,9 +255,6 @@ def build_token_error(result):
                       ctx=result.ctx,
                       code=result.code, retryable=False)
 
-
-def env_set_up(env):
-    return all(getattr(env, var)() for var in expected_envs)
 
 
 def tracer_from_ctx():

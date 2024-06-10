@@ -2,8 +2,13 @@ from typing import Optional, Dict, Any, List, Callable
 from datetime import datetime
 from dataclasses import dataclass
 from enum import Enum
+from aws_lambda_powertools.utilities.data_classes import (
+    S3Event,
+    APIGatewayProxyEvent,
+    KafkaEvent)
 
-from . import tracer, error, app_serialisers
+from . import tracer, error, app_serialisers, observable
+
 
 class HttpStatusCode(Enum):
     OK = 200
@@ -12,20 +17,23 @@ class HttpStatusCode(Enum):
     Unauthorized = 401
     InternalServerError = 500
 
+
 @dataclass
 class DataClassAbstract:
     def replace(self, key, value):
         setattr(self, key, value)
         return self
 
+
 @dataclass
 class RequestEvent(DataClassAbstract):
-    event: Dict
+    event: S3Event | APIGatewayProxyEvent | KafkaEvent
     kind: str
     request_function: Callable
 
     def returnable_session_state(self):
         return False
+
 
 @dataclass
 class S3Object(DataClassAbstract):
@@ -40,12 +48,25 @@ class S3Object(DataClassAbstract):
 
 
 @dataclass
+class KafkaTopicEvent(DataClassAbstract):
+    topic: str
+    key: str | bytes
+    value: str
+
+
+@dataclass
 class NoopEvent(RequestEvent):
     pass
+
 
 @dataclass
 class S3StateChangeEvent(RequestEvent):
     objects: List[S3Object]
+
+
+@dataclass
+class KafkaRecordsEvent(RequestEvent):
+    events: List[KafkaTopicEvent]
 
 
 @dataclass
@@ -66,12 +87,12 @@ class ApiGatewayRequestEvent(RequestEvent):
         return True
 
 
-
 @dataclass
 class Request(DataClassAbstract):
     event: RequestEvent
     context: dict
     tracer: tracer.Tracer
+    observer: observable.Observer = None
     event_time: datetime = None
     app_request_context: Dict = None
     status_code: Optional[HttpStatusCode] = None
@@ -81,6 +102,7 @@ class Request(DataClassAbstract):
     error: Optional[Any] = None
     response: Optional[dict] = None
     response_headers: Optional[dict] = None
+
 
 class AppError(error.BaseError):
     @classmethod

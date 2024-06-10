@@ -1,5 +1,5 @@
 from metis_fn import monad
-from metis_app import pip, app, subject_token
+from metis_app import pip, app, app_events, subject_token
 
 from .shared import *
 
@@ -81,7 +81,7 @@ def api_request(event, no_token: bool = False, token=None):
     if not no_token:
         token_to_add = token if token else crypto_helpers.generate_signed_jwt(crypto_helpers.Idp().jwk)
         event['headers']['Authorization'] = event['headers']['Authorization'].replace("{}", token_to_add)
-    return app.Request(event=app.event_factory(event), context={}, tracer={})
+    return app.Request(event=app_events.event_factory(event), context={}, tracer={})
 
 
 def get_userinfo_mock(id_token):

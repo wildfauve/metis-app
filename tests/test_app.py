@@ -3,12 +3,11 @@ from metis_fn import monad
 
 from .shared import *
 
-from metis_app import app, error, app_serialisers, app_value, pip, subject_token, pdp
+from metis_app import app, app_serialisers, app_value, pip, subject_token, pdp
 
 
 class UnAuthorised(app.AppError):
     pass
-
 
 #
 # Pipeline Functions
@@ -131,54 +130,6 @@ def test_fails_find_a_token(set_up_env,
 
 
 #
-# Router Functions
-#
-
-def it_creates_a_route_matched_on_string():
-    template, route_fn, opts = app.route_fn_from_kind('hello')
-    result = route_fn(dummy_request())
-
-    assert result.value.response.value.serialisable == {'hello': 'there'}
-
-
-def it_routes_based_on_tuple_and_template():
-    template, route_fn, opts = app.route_fn_from_kind(('API', 'GET', '/resourceBase/resource/uuid1/resource/uuid2'))
-
-    result = route_fn(dummy_request())
-
-    assert result.value.response.value.serialisable == {'resource': 'uuid1'}
-
-
-def it_implements_the_serialiser_protocol_for_the_response():
-    template, route_fn, opts = app.route_fn_from_kind(('API', 'GET', '/resourceBase/resource/uuid1/resource/uuid2'))
-
-    result = route_fn(dummy_request())
-
-    assert result.value.response.value.serialisable == {'resource': 'uuid1'}
-    assert result.value.response.value.serialise() == '{"resource": "uuid1"}'
-
-
-def it_defaults_to_no_matching_routes_when_not_found():
-    template, route_fn, opts = app.route_fn_from_kind("bad_route")
-
-    result = route_fn(dummy_request())
-
-    assert result.error().error.message == 'no matching route'
-
-
-def it_finds_the_route_pattern_by_function():
-    template, route_fn, opts = app.route_fn_from_kind(('API', 'GET', '/resourceBase/resource/uuid1'))
-
-    assert app.template_from_route_fn(route_fn) == ('API', 'GET', '/resourceBase/resource/{id1}')
-
-
-def it_parses_the_json_body(api_gateway_event_post_with_json_body):
-    event = app.event_factory(api_gateway_event_post_with_json_body)
-
-    assert event.body == {'test': 1}
-
-
-#
 # Request Builder Functions
 #
 
@@ -188,57 +139,6 @@ def it_includes_a_time_in_the_request(api_gateway_event_get):
                               env=Env().env)
     assert isinstance(request.value.event_time, datetime.datetime)
 
-
-def it_identifies_an_s3_event(s3_event_hello):
-    event = app.event_factory(event=s3_event_hello)
-
-    assert isinstance(event, app.S3StateChangeEvent)
-    assert event.kind == 'hello'
-    assert len(event.objects) == 1
-    assert event.objects[0].bucket == 'hello'
-    assert event.objects[0].key == 'hello_file.json'
-
-
-def it_decodes_the_body_when_base64_encoded():
-    event = app.event_factory(event=api_gateway_event_with_base64_encoded_body())
-    assert event.body == 'grant_type=client_credentials'
-
-
-def it_downcases_all_headers():
-    event = app.event_factory(event=api_gateway_event_with_base64_encoded_body())
-    assert set(event.headers.keys()) == {'content-type', 'authorization'}
-
-
-def it_identifies_an_s3_event_using_custom_factory(s3_event_hello):
-    event = app.event_factory(event=s3_event_hello, factory_overrides={'s3': overrided_s3_factory})
-
-    assert isinstance(event, app.S3StateChangeEvent)
-    assert event.kind == 'bonjour'
-    assert len(event.objects) == 1
-    assert event.objects[0].bucket == 'hello'
-    assert event.objects[0].key == 'hello_file.json'
-
-
-def it_identifies_an_api_gateway_get_event(api_gateway_event_get):
-    event = app.event_factory(api_gateway_event_get)
-
-    assert isinstance(event, app.ApiGatewayRequestEvent)
-
-    assert event.kind == ('API', 'GET', '/resourceBase/resource/uuid1')
-    assert event.request_function
-    assert event.path_params == {'id1': 'uuid1'}
-    assert event.headers
-    assert event.query_params == {'param1': 'a', 'param2': 'b'}
-
-
-def it_identifies_an_api_gateway_get_event_for_a_nested_resource(api_gateway_event_get_nested_resource):
-    event = app.event_factory(api_gateway_event_get_nested_resource)
-
-    assert isinstance(event, app.ApiGatewayRequestEvent)
-
-    assert event.kind == ('API', 'GET', '/resourceBase/resource/uuid1/resource/resource-uuid2')
-    assert event.request_function
-    assert event.path_params == {'id1': 'uuid1', 'id2': 'resource-uuid2'}
 
 
 #
@@ -296,7 +196,6 @@ def get_resource(request):
             pass
         request.status_code = app_value.HttpStatusCode.CREATED
         return monad.Right(request.replace('response', monad.Right(app.DictToJsonSerialiser({'resource': 'uuid1'}))))
-
     return command(request)
 
 
