@@ -8,7 +8,7 @@ from aws_lambda_powertools.utilities.data_classes.s3_event import S3EventRecord
 from typing import Callable, Any, Type
 
 from metis_fn import monad, fn, chronos
-from . import (Observer,
+from . import (env,
                span_tracer,
                logger,
                app_events,
@@ -269,7 +269,7 @@ def build_multi_headers(event: app_value.RequestEvent) -> dict:
     return {}
 
 
-def init_tracer(env: str, aws_context=None):
+def init_tracer(env: env.EnvironmentProtocol, aws_context=None):
     aws_request_id = aws_context.aws_request_id if aws_context else None
-    return span_tracer.SpanTracer(env=env,
+    return span_tracer.SpanTracer(environment=env,
                                   kv={'handler_id': aws_request_id})

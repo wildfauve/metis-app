@@ -17,7 +17,7 @@ def it_executes_a_pipeline_from_s3_event(set_up_env,
                                          s3_event_hello):
     result = app.pipeline(event=s3_event_hello,
                           context={},
-                          env=Env().env,
+                          env=Env(),
                           params_parser=noop_callable,
                           pip_initiator=noop_callable,
                           handler_guard_fn=noop_callable)
@@ -29,7 +29,7 @@ def it_executes_a_pipeline_from_s3_event(set_up_env,
 def it_fails_on_expectations():
     result = app.pipeline(event={},
                           context={},
-                          env=Env().env,
+                          env=Env(),
                           params_parser=noop_callable,
                           pip_initiator=noop_callable,
                           handler_guard_fn=failed_env_expectations)
@@ -41,7 +41,7 @@ def it_fails_on_expectations():
 def it_executes_the_noop_path():
     result = app.pipeline(event={},
                           context={},
-                          env=Env().env,
+                          env=Env(),
                           params_parser=noop_callable,
                           pip_initiator=noop_callable,
                           handler_guard_fn=noop_callable)
@@ -54,7 +54,7 @@ def it_adds_the_session_as_a_cookie(set_up_env,
                                     api_gateway_event_get):
     result = app.pipeline(event=api_gateway_event_get,
                           context={},
-                          env=Env().env,
+                          env=Env(),
                           params_parser=noop_callable,
                           pip_initiator=noop_callable,
                           handler_guard_fn=noop_callable)
@@ -66,7 +66,7 @@ def it_returns_a_201_created(set_up_env,
                              api_gateway_event_get):
     result = app.pipeline(event=api_gateway_event_get,
                           context={},
-                          env=Env().env,
+                          env=Env(),
                           params_parser=noop_callable,
                           pip_initiator=noop_callable,
                           handler_guard_fn=noop_callable)
@@ -87,7 +87,7 @@ def it_returns_a_subject_activities_401_unauthorised(set_up_env,
 
     result = app.pipeline(event=api_request_with_token(change_path_to_authz_fn(api_gateway_event_get)),
                           context={},
-                          env=Env().env,
+                          env=Env(),
                           params_parser=noop_callable,
                           pip_initiator=pip_wrapper,
                           handler_guard_fn=failed_token_expectation)
@@ -104,7 +104,7 @@ def it_returns_a_invalid_token_401_unauthorised(set_up_env,
 
     result = app.pipeline(event=api_request_with_token(api_gateway_event_get, "bad_token"),
                           context={},
-                          env=Env().env,
+                          env=Env(),
                           params_parser=noop_callable,
                           pip_initiator=pip_wrapper,
                           handler_guard_fn=failed_token_expectation)
@@ -119,7 +119,7 @@ def test_fails_find_a_token(set_up_env,
 
     result = app.pipeline(event=api_gateway_event_get,
                           context={},
-                          env=Env().env,
+                          env=Env(),
                           params_parser=noop_callable,
                           pip_initiator=pip_wrapper,
                           handler_guard_fn=noop_callable)
@@ -136,7 +136,7 @@ def test_fails_find_a_token(set_up_env,
 def it_includes_a_time_in_the_request(api_gateway_event_get):
     request = app.build_value(event=api_gateway_event_get,
                               context={},
-                              env=Env().env)
+                              env=Env())
     assert isinstance(request.value.event_time, datetime.datetime)
 
 

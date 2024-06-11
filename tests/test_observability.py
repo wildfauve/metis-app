@@ -21,7 +21,7 @@ def it_uses_the_configured_logger_tracer_and_metrics_from_powertools(set_up_env,
 def handler(event, ctx=None):
     return app.pipeline(event=event,
                         context=ctx,
-                        env=Env().env,
+                        env=Env(),
                         params_parser=noop_callable,
                         pip_initiator=noop_callable,
                         handler_guard_fn=noop_callable)

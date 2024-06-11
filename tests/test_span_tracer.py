@@ -1,9 +1,11 @@
 import pytest
 
+from tests.shared import *
+
 from metis_app import span_tracer
 
 def test_serialise_a_span():
-    tracer = span_tracer.SpanTracer(env="prod", span_id='1', tags=['ATag'], kv={'k': 'v'})
+    tracer = span_tracer.SpanTracer(environment=Env(), span_id='1', tags=['ATag'], kv={'k': 'v'})
 
     output = tracer.serialise()
 
@@ -11,13 +13,13 @@ def test_serialise_a_span():
     assert output['span_id'] == '1'
 
 def test_aws_request_id():
-    tracer = span_tracer.SpanTracer(env="prod", kv={'handler_id': "aws_request_id"})
+    tracer = span_tracer.SpanTracer(environment=Env(), kv={'handler_id': "aws_request_id"})
 
     assert tracer.aws_request_id() == "aws_request_id"
 
 
 def test_new_tracer_inherits_span_id():
-    tracer = span_tracer.SpanTracer(env="prod", span_id='1', tags=['ATag'], kv={'k': 'v'})
+    tracer = span_tracer.SpanTracer(environment=Env(), span_id='1', tags=['ATag'], kv={'k': 'v'})
 
     new_tracer = tracer.span_child(tags=['BTag'], kv={'k2': 'v2'})
 

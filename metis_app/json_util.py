@@ -11,5 +11,4 @@ class CustomLogEncoder(json.JSONEncoder):
             case decimal.Decimal:
                 return str(obj)
             case _:
-                breakpoint()
                 return json.JSONEncoder.default(self, obj)
