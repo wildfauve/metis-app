@@ -36,6 +36,7 @@ def test_write_and_mutate_env(setup_aws_ctx):
     writer = parameter_store.writer(key, mutate_env=True, value_type=parameter_store.SecureString)
 
     result = writer("TEST")
+
     assert result.is_right
     assert result.value.state == "ok"
     assert result.value.name == "A_PARAM"
@@ -145,6 +146,7 @@ def test_writer_using_parameter_env_protocol(aws_mock, aws_ctx_with_boto):
                                     mutate_env=True,
                                     value_type=parameter_store.SecureString)
 
+
     result = writer("TEST")
     assert result.is_right
     assert result.value.state == "ok"
@@ -180,8 +182,10 @@ def nested_params():
     parameter_store.write("/service1/env/PARAMETER_IN_ENV",
                           False,
                           "String",
+                          "Standard",
                           "1")
     parameter_store.write("/service1/env/ns1/NS1_PARAMETER",
                           False,
                           "String",
+                          "Standard",
                           "ns1")

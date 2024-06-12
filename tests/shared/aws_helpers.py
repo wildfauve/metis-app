@@ -30,7 +30,7 @@ class MockSsm(MockAwsClient):
     def get_parameters_by_path(self, Path, WithDecryption, Recursive):
         return type(self).response
 
-    def put_parameter(self, Name, Value, Type, Overwrite=False):
+    def put_parameter(self, Name, Value, Type, Overwrite=False, Tier=None):
         self.__class__.parameters[Name] = Value
         return {
             'ResponseMetadata': {

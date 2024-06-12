@@ -8,6 +8,7 @@ from metis_app import aws_client_helpers, error
 SecureString = "SecureString"
 String = "String"
 
+
 @dataclass
 class ParameterState:
     state: str
@@ -24,7 +25,8 @@ class ParameterEnvironmentProtocol(Protocol):
                       value_type: Union[String, SecureString],
                       key: str,
                       value: str,
-                      client: Callable) -> monad.Either:
+                      client: Callable,
+                      tier: str = None) -> monad.Either:
         ...
 
     def set_parameters_in_env(self, parameters: list[dict]) -> monad.Either:
@@ -33,7 +35,6 @@ class ParameterEnvironmentProtocol(Protocol):
     def set_parameter_in_env(self, mutate_env: bool, parameter) -> monad.Either[
         error.ParameterStoreError, ParameterState]:
         ...
-
 
 
 class ParameterConfiguration(singleton.Singleton):
@@ -61,7 +62,6 @@ class ParameterConfiguration(singleton.Singleton):
         return fn.identity
 
 
-
 def aws_error_test_fn(result):
     statuses = {'200': True}
     if isinstance(result, monad.Either):
@@ -73,7 +73,6 @@ def aws_error_test_fn(result):
     return monad.Left(error.ParameterStoreError(result.value['ResponseMetadata']['HTTPHeaders']))
 
 
-
 class OsEnv(ParameterEnvironmentProtocol):
 
     def __init__(self, root_path):
@@ -82,19 +81,20 @@ class OsEnv(ParameterEnvironmentProtocol):
     @monad.monadic_try(name="put parameter",
                        exception_test_fn=aws_error_test_fn,
                        error_cls=error.ParameterStoreError)
-    def put_parameter(self, value_type, key, value, client):
+    def put_parameter(self, value_type, tier, key, value, client):
         if ParameterConfiguration().fn_for_update_test()(key):
-            return self._update_parameter(value_type, key, value, client)
-        return self._create_parameter(value_type, key, value, client)
+            return self._update_parameter(value_type, tier, key, value, client)
+        return self._create_parameter(value_type, tier, key, value, client)
 
-    def _create_parameter(self, value_type, key, param, client):
+    def _create_parameter(self, value_type, tier, key, param, client):
         result = client.put_parameter(Name=key if _is_absolute_path(key) else parameter_link(key),
                                       Value=param,
                                       Type=value_type,
+                                      Tier=tier if tier else 'Standard',
                                       Overwrite=False)
         return result
 
-    def _update_parameter(self, value_type, key, value, client):
+    def _update_parameter(self, value_type, tier, key, value, client):
         result = client.put_parameter(Name=key if _is_absolute_path(key) else parameter_link(key),
                                       Value=value,
                                       Type=value_type,
@@ -147,7 +147,8 @@ def set_env_from_parameter_store(path: str, client=None):
 
 def writer(key: str,
            mutate_env: bool = True,
-           value_type: str = SecureString) -> Callable:
+           value_type: str = SecureString,
+           tier: str = 'Standard') -> Callable:
     """
     A HOF.  Allows for the partial application of a PS write function.  Returns the write fn
     which then takes the value to write and an optional builder fn which can transform the parameter
@@ -157,12 +158,13 @@ def writer(key: str,
     :param value_type: String | SecureString.  Defaults to SecureString
     :return:
     """
-    return partial(write, key, mutate_env, value_type)
+    return partial(write, key, mutate_env, value_type, tier)
 
 
 def write(key: str,
           mutate_env: bool,
           value_type: str,
+          tier: str,
           value: str,
           builder: Callable = fn.identity,
           ) -> monad.Either:
@@ -170,12 +172,12 @@ def write(key: str,
     Implements a cache style interface that take a key/value
     and writes it to Parameter Store
     """
-    if (param_env:=ParameterConfiguration().param_env()):
+    if (param_env := ParameterConfiguration().param_env()):
         put_fn = param_env.put_parameter
     else:
         put_fn = put_parameter
     result = (monad.Right(ssm_client())
-              >> partial(put_fn, value_type, key, value)
+              >> partial(put_fn, value_type, tier, key, value)
               >> partial(build_parameter, key, value, builder)
               >> partial(set_env_var, mutate_env))
     return result
@@ -207,8 +209,6 @@ def set_env_var(mutate_env: bool, parameter) -> monad.Either[error.ParameterStor
     return monad.Right(ParameterState(state="ok",
                                       name=name,
                                       value=parameter['Value']))
-
-
 
 
 def get_parameters(path, client):
@@ -243,16 +243,17 @@ def get_parameter(key, client, with_decryption: bool = True):
 @monad.monadic_try(name="put parameter",
                    exception_test_fn=aws_error_test_fn,
                    error_cls=error.ParameterStoreError)
-def put_parameter(value_type, key, value, client):
+def put_parameter(value_type, tier, key, value, client):
     if ParameterConfiguration().fn_for_update_test()(key):
         return update_parameter(value_type, key, value, client)
-    return create_parameter(value_type, key, value, client)
+    return create_parameter(value_type, key, value, client, tier)
 
 
-def create_parameter(value_type, key, param, client):
+def create_parameter(value_type, key, param, client, tier):
     result = client.put_parameter(Name=key if _is_absolute_path(key) else parameter_link(key),
                                   Value=param,
                                   Type=value_type,
+                                  Tier=tier if tier else 'Standard',
                                   Overwrite=False)
     return result
 

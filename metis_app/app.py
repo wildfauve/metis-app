@@ -8,7 +8,7 @@ from aws_lambda_powertools.utilities.data_classes.s3_event import S3EventRecord
 from typing import Callable, Any, Type
 
 from metis_fn import monad, fn, chronos
-from . import (env,
+from . import (env as environment,
                span_tracer,
                logger,
                app_events,
@@ -97,7 +97,7 @@ def route(pattern, opts=None):
 
 def pipeline(event: dict,
              context: dict,
-             env: str,
+             env: environment.EnvironmentProtocol,
              params_parser: Callable,
              pip_initiator: Callable,
              handler_guard_fn: Callable,
