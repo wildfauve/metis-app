@@ -269,7 +269,7 @@ def build_multi_headers(event: app_value.RequestEvent) -> dict:
     return {}
 
 
-def init_tracer(env: env.EnvironmentProtocol, aws_context=None):
+def init_tracer(env: environment.EnvironmentProtocol, aws_context=None):
     aws_request_id = aws_context.aws_request_id if aws_context else None
     return span_tracer.SpanTracer(environment=env,
                                   kv={'handler_id': aws_request_id})
