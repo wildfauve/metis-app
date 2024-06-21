@@ -169,7 +169,7 @@ def token_service(bearer_token):
     result = http_adapter.post(endpoint=identity_token_endpoint(),
                                auth=(client_id(), client_secret()),
                                headers={},
-                               body=token_request_data(),
+                               body=TokenConfig().env.client_credentials_request(),
                                encoding='urlencoded',
                                name='token_service',
                                circuit_state_provider=TokenConfig().circuit_state_provider)
@@ -230,10 +230,6 @@ def identity_token_endpoint() -> str:
 
 def bearer_token_from_env():
     return monad.Right(TokenConfig().env.bearer_token())
-
-
-def token_request_data():
-    return {'audience': 'https://api.jarden.io', 'grant_type': 'client_credentials', 'scopes': 'openid'}
 
 
 def not_in_token_retry_window(bearer_token: str) -> bool:

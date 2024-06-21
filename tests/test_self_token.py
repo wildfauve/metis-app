@@ -39,6 +39,9 @@ class Env():
     def bearer_token(self):
         return None
 
+    def client_credentials_request(self):
+        return {'grant_type': 'client_credentials'}
+
     def set_env_var_with_value(self, key, value):
         os.environ[key] = value
         return ('ok', key, value)

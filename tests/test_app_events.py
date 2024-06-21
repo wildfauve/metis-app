@@ -128,6 +128,14 @@ def it_identifies_a_kafka_event(kafka_event):
     assert len(event.events) == 1
     assert event.events[0].value == {"event": "someevent"}
 
+def it_handles_a_kafka_event_without_a_key(kafka_event_without_key):
+    event = app_events.event_factory(event=kafka_event_without_key)
+
+    assert isinstance(event, app.KafkaRecordsEvent)
+    assert event.kind == 'hello-kafka'
+    assert len(event.events) == 1
+    assert event.events[0].value == {"event": "someevent"}
+
 
 #
 # Local Fixtures

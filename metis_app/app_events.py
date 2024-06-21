@@ -154,7 +154,7 @@ def _s3_object(bucket_name, record: S3EventRecord) -> app_value.S3Object:
 
 def _kafka_event(record: KafkaEventRecord) -> app_value.KafkaTopicEvent:
     return app_value.KafkaTopicEvent(topic=record.topic,
-                                     key=record.decoded_key,
+                                     key=record.decoded_key if 'key' in record._data.keys() else None,
                                      value=record.json_value)
 
 

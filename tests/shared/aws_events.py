@@ -220,39 +220,51 @@ def api_gateway_event_with_base64_encoded_body():
 
 @pytest.fixture
 def kafka_event():
+    return _kafka_event()
+
+
+@pytest.fixture
+def kafka_event_without_key():
+    return _kafka_event(no_key=True)
+
+
+def _kafka_event(no_key=False):
+    key = [
+        104,
+        101,
+        97,
+        100,
+        101,
+        114,
+        86,
+        97,
+        108,
+        117,
+        101
+    ]
+    encoded_key = "abcDEFghiJKLmnoPQRstuVWXyz1234=="
     event = base64.b64encode(json.dumps({"event": "someevent"}).encode('utf-8')).decode('utf-8')
+    base_ev = {
+        "topic": "hello-kafka",
+        "partition": 0,
+        "offset": 15,
+        "timestamp": 1545084650987,
+        "timestampType": "CREATE_TIME",
+        "value": event,
+        "headers": [
+            {
+                "headerKey": [] if no_key else key
+            }
+        ]
+
+    }
+    ev = base_ev if no_key else {**base_ev, **{'key': encoded_key}}
+
     return {
         "eventSourceArn": "arn:aws:kafka:sa-east-1:123456789012:cluster/vpc-2priv-2pub/751d2973-a626-431c-9d4e-d7975eb44dd7-2",
         "eventSource": "aws:kafka",
         "bootstrapServers": "b-2.demo-cluster-1.a1bcde.c1.kafka.us-east-1.amazonaws.com:9092,b-1.demo-cluster-1.a1bcde.c1.kafka.us-east-1.amazonaws.com:9092",
         "records": {
-            "hello-kafka-0": [
-                {
-                    "topic": "hello-kafka",
-                    "partition": 0,
-                    "offset": 15,
-                    "timestamp": 1545084650987,
-                    "timestampType": "CREATE_TIME",
-                    "key": "abcDEFghiJKLmnoPQRstuVWXyz1234==",
-                    "value": event,
-                    "headers": [
-                        {
-                            "headerKey": [
-                                104,
-                                101,
-                                97,
-                                100,
-                                101,
-                                114,
-                                86,
-                                97,
-                                108,
-                                117,
-                                101
-                            ]
-                        }
-                    ]
-                }
-            ]
+            "hello-kafka-0": [ev]
         }
     }
