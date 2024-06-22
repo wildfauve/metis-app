@@ -5,7 +5,7 @@ from simple_memory_cache import GLOBAL_CACHE
 import re
 
 from metis_fn import monad, singleton, chronos
-from . import http_adapter, http, circuit, error, crypto
+from . import http_adapter, http, circuit, error, crypto, cache
 
 jwks_cache = GLOBAL_CACHE.MemoryCachedVar('jwks_cache')
 
@@ -16,15 +16,6 @@ JWKS = "JWKS"  # name in cache
 
 class JwksGetError(error.BaseError):
     pass
-
-
-class JwksPersistenceProviderProtocol(Protocol):
-
-    def write(self, key, value):
-        ...
-
-    def read(self, key):
-        ...
 
 
 class SubjectTokenConfig(singleton.Singleton):
@@ -39,7 +30,7 @@ class SubjectTokenConfig(singleton.Singleton):
     def configure(self,
                   jwks_endpoint: str,
                   asserted_iss: str = "",
-                  jwks_persistence_provider: JwksPersistenceProviderProtocol = None,
+                  jwks_persistence_provider: cache.KeyValueCachePersistenceProviderProtocol = None,
                   circuit_state_provider: circuit.CircuitStateProviderProtocol = None):
         self.jwks_persistence_provider = jwks_persistence_provider
         self.jwks_endpoint = jwks_endpoint
@@ -114,7 +105,7 @@ def jwks_from_cache(endpoint):
     return monad.Right((endpoint, result.value.value))
 
 
-def cache_reader(provider: JwksPersistenceProviderProtocol):
+def cache_reader(provider: cache.KeyValueCachePersistenceProviderProtocol):
     if not hasattr(provider, 'read'):
         return None
     return provider.read(key=JWKS)

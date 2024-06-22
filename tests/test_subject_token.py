@@ -1,6 +1,5 @@
 from metis_fn import monad
-from metis_app import subject_token, http_adapter
-from metis_app import crypto as Cy
+from metis_app import subject_token, http_adapter, crypto as Cy, cache
 
 from metis_crypto import jwk, jwt
 import time
@@ -8,7 +7,7 @@ import time
 from .shared import *
 
 
-class JwtPersistenceProvider(subject_token.JwksPersistenceProviderProtocol):
+class JwtPersistenceProvider(cache.KeyValueCachePersistenceProviderProtocol):
 
     def __init__(self):
         self.jwks = None

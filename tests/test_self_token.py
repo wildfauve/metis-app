@@ -6,10 +6,10 @@ from metis_fn import fn, monad
 
 from .shared import *
 
-from metis_app import self_token, circuit
+from metis_app import self_token, circuit, cache
 
 
-class TokenPersistenceProvider(self_token.TokenPersistenceProviderProtocol):
+class TokenPersistenceProvider(cache.KeyValueCachePersistenceProviderProtocol):
     def __init__(self):
         self.bearer_token = None
         pass

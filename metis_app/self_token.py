@@ -2,7 +2,7 @@ from typing import Tuple, Callable, Any, Protocol
 from simple_memory_cache import GLOBAL_CACHE
 
 from metis_fn import chronos, monad, singleton
-from . import http_adapter, crypto, random_retry_window, logger, circuit
+from . import http_adapter, crypto, random_retry_window, logger, circuit, cache
 from .tracer import Tracer
 
 expected_envs = ['client_id',
@@ -43,15 +43,6 @@ class TokenEnvError(Error):
     pass
 
 
-class TokenPersistenceProviderProtocol(Protocol):
-
-    def write(self, key, value):
-        ...
-
-    def read(self, key):
-        ...
-
-
 """
 The token config is setup by the library caller to provide 4 arguments:
 
@@ -77,7 +68,7 @@ class TokenConfig(singleton.Singleton):
     default_expiry_threshold = (60 * 60)  # The room to leave before the actual token expiry
 
     def configure(self,
-                  token_persistence_provider: TokenPersistenceProviderProtocol,
+                  token_persistence_provider: cache.KeyValueCachePersistenceProviderProtocol,
                   env: Any,
                   env_ready_test_fn: Callable = env_set_up,
                   circuit_state_provider: circuit.CircuitStateProviderProtocol = None,
