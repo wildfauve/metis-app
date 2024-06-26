@@ -1,10 +1,13 @@
 import base64
+import json
 from functools import reduce
 
 from aws_lambda_powertools.utilities.data_classes import (
     S3Event,
     APIGatewayProxyEvent,
-    KafkaEvent)
+    KafkaEvent,
+    EventBridgeEvent
+)
 from aws_lambda_powertools.utilities.data_classes.s3_event import S3EventRecord
 from aws_lambda_powertools.utilities.data_classes.kafka_event import KafkaEventRecord
 from metis_fn import fn
@@ -26,13 +29,15 @@ def event_factory(event: dict,
 
 
 def dynamic_event_match(event):
-    ev_keys=event.keys()
+    ev_keys = event.keys()
     if 'Records' in ev_keys:
         return build_s3_state_change_event, S3Event(event)
     if 'httpMethod' in ev_keys:
         return build_http_event, APIGatewayProxyEvent(event)
     if 'eventSource' in ev_keys:
         return build_kafka_event, KafkaEvent(event)
+    if 'source' in ev_keys:
+        return build_event_bridge_event, EventBridgeEvent(event)
     return build_noop_event, event
 
 
@@ -64,13 +69,29 @@ def build_s3_state_change_event(event: S3Event, factory_overrides: dict) -> app_
 
 def build_kafka_event(event: KafkaEvent, factory_overrides) -> app_value.KafkaRecordsEvent:
     evs = _kafka_events_from_event(event)
-    factory = _domain_from_topic if not factory_overrides.get('kafka', None) else factory_overrides.get('kafka', None)
+    factory = _domain_from_kafka_topic if not factory_overrides.get('kafka', None) else factory_overrides.get('kafka',
+                                                                                                              None)
     kind = factory(evs)
     template, route_fn, _opts = route_fn_from_kind(kind)
     return app_value.KafkaRecordsEvent(event=event,
                                        kind=kind,
                                        request_function=route_fn,
                                        events=evs)
+
+
+def build_event_bridge_event(event: EventBridgeEvent, factory_overrides) -> app_value.EventBridgePublishEvent:
+    if not factory_overrides.get('eventbridge', None):
+        factory = _domain_from_event_bridge_topic
+    else:
+        factory_overrides.get('eventbridge', None)
+
+    kind = factory(event.detail_type)
+    template, route_fn, _opts = route_fn_from_kind(kind)
+    return app_value.EventBridgePublishEvent(topic=event.detail_type,
+                                             kind=kind,
+                                             event=event,
+                                             body=json.loads(event.detail),
+                                             request_function=route_fn)
 
 
 def build_http_event(event: APIGatewayProxyEvent,
@@ -136,7 +157,7 @@ def _domain_from_bucket_name(objects: list[app_value.S3Object]) -> str:
     return domain.pop().split(DEFAULT_S3_BUCKET_SEP)[0]
 
 
-def _domain_from_topic(events: list[KafkaEventRecord]) -> str:
+def _domain_from_kafka_topic(events: list[KafkaEventRecord]) -> str:
     """
     The handler is expected to deal with only 1 topic as it's a domain concept.  Multiple buckets
     indicate concern separation issues.
@@ -145,6 +166,12 @@ def _domain_from_topic(events: list[KafkaEventRecord]) -> str:
     if len(domain) > 1:
         return NO_MATCHING_ROUTE
     return domain.pop()
+
+
+def _domain_from_event_bridge_topic(topic) -> str:
+    if not topic:
+        return NO_MATCHING_ROUTE
+    return topic
 
 
 def _s3_object(bucket_name, record: S3EventRecord) -> app_value.S3Object:
@@ -160,8 +187,6 @@ def _kafka_event(record: KafkaEventRecord) -> app_value.KafkaTopicEvent:
 
 def _route_from_http_event(method, path):
     return ('API', method, path)
-
-
 
 
 def _path_template_to_params(kind, template) -> dict:

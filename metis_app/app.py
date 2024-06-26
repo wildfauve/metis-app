@@ -84,6 +84,7 @@ ApiGatewayRequestEvent = app_value.ApiGatewayRequestEvent
 S3StateChangeEvent = app_value.S3StateChangeEvent
 S3Object = app_value.S3Object
 KafkaRecordsEvent = app_value.KafkaRecordsEvent
+EventBridgePublishEvent = app_value.EventBridgePublishEvent
 
 Serialiser = app_serialisers.SerialiserProtocol
 DictToJsonSerialiser = app_serialisers.DictToJsonSerialiser

@@ -219,6 +219,23 @@ def api_gateway_event_with_base64_encoded_body():
 
 
 @pytest.fixture
+def event_bridge_event():
+    event = {"hello": "from-event-bridge"}
+    return {
+        "id": "cdc73f9d-aea9-11e3-9d5a-835b769c0d9c",
+        "detail-type": "my.domain.topic",
+        "source": "aws.events",
+        "account": "123456789012",
+        "time": "1970-01-01T00:00:00Z",
+        "region": "us-east-1",
+        "resources": [
+            "arn:aws:events:us-east-1:123456789012:rule/ExampleRule"
+        ],
+        "detail": json.dumps(event)
+    }
+
+
+@pytest.fixture
 def kafka_event():
     return _kafka_event()
 

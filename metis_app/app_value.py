@@ -5,7 +5,8 @@ from enum import Enum
 from aws_lambda_powertools.utilities.data_classes import (
     S3Event,
     APIGatewayProxyEvent,
-    KafkaEvent)
+    KafkaEvent,
+    EventBridgeEvent)
 
 from . import tracer, error, app_serialisers, observable
 
@@ -27,7 +28,7 @@ class DataClassAbstract:
 
 @dataclass
 class RequestEvent(DataClassAbstract):
-    event: S3Event | APIGatewayProxyEvent | KafkaEvent
+    event: S3Event | APIGatewayProxyEvent | KafkaEvent | EventBridgeEvent
     kind: str
     request_function: Callable
 
@@ -67,6 +68,12 @@ class S3StateChangeEvent(RequestEvent):
 @dataclass
 class KafkaRecordsEvent(RequestEvent):
     events: List[KafkaTopicEvent]
+
+
+@dataclass
+class EventBridgePublishEvent(RequestEvent):
+    topic: str
+    body: dict
 
 
 @dataclass

@@ -88,7 +88,7 @@ def circuit_breaker():
     + last_state_chg_time: Takes and returns the last state change time as a ISO8601 formatted str.
     + update_state
 
-    When a circuit_state_provider is not provided, the the circuit is a no-op.
+    When a circuit_state_provider is not provided, the circuit is a no-op.
 
     """
     def inner(fn):

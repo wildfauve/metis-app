@@ -136,6 +136,12 @@ def it_handles_a_kafka_event_without_a_key(kafka_event_without_key):
     assert len(event.events) == 1
     assert event.events[0].value == {"event": "someevent"}
 
+def it_identifies_an_eventbridge_event(event_bridge_event):
+    event = app_events.event_factory(event=event_bridge_event)
+
+    assert isinstance(event, app.EventBridgePublishEvent)
+    assert event.kind == 'my.domain.topic'
+    assert event.body == {'hello': 'from-event-bridge'}
 
 #
 # Local Fixtures
@@ -155,6 +161,12 @@ def overrided_s3_factory(objects: List[app_value.S3Object]) -> str:
 @app.route(pattern="hello")
 def hello_handler(request):
     return monad.Right(request.replace('response', monad.Right(app.DictToJsonSerialiser({'hello': 'there'}))))
+
+
+@app.route(pattern="my.domain.topic")
+def event_bridge_hello_handler(request):
+    return monad.Right(request.replace('response',
+                                       monad.Right(app.DictToJsonSerialiser({'hello': request.event.topic}))))
 
 
 @app.route(pattern="bonjour")
