@@ -18,7 +18,7 @@ class PowerToolsLoggerWrapper:
 
 
 def info(msg: str,
-         ctx: dict,
+         ctx: dict | None = None,
          tracer: Tracer | None = None,
          status: str = 'ok',
          **kwargs) -> None:
