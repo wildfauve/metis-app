@@ -231,7 +231,7 @@ def event_bridge_event():
         "resources": [
             "arn:aws:events:us-east-1:123456789012:rule/ExampleRule"
         ],
-        "detail": json.dumps(event)
+        "detail": event
     }
 
 

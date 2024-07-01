@@ -90,7 +90,7 @@ def build_event_bridge_event(event: EventBridgeEvent, factory_overrides) -> app_
     return app_value.EventBridgePublishEvent(topic=event.detail_type,
                                              kind=kind,
                                              event=event,
-                                             body=json.loads(event.detail),
+                                             body=event.detail,
                                              request_function=route_fn)
 
 

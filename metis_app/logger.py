@@ -17,14 +17,28 @@ class PowerToolsLoggerWrapper:
         self.logger.info(msg, **meta.get('ctx', {}))
 
 
-def info(msg: str, tracer: Tracer | None = None, status: str = 'ok', ctx: dict = {}) -> None:
-    _log('info', msg, tracer, status, ctx)
+def info(msg: str,
+         ctx: dict,
+         tracer: Tracer | None = None,
+         status: str = 'ok',
+         **kwargs) -> None:
+    _log('info',
+         msg,
+         tracer,
+         status,
+         ctx if ctx else {},
+         **kwargs)
 
 
-def _log(level: str, msg: str, tracer: Any, status: str, ctx: Dict[str, str]) -> None:
+def _log(level: str,
+         msg: str,
+         tracer: Any,
+         status: str,
+         ctx: dict[str, str],
+         **kwargs) -> None:
     if level not in level_functions.keys():
         return
-    level_functions.get(level, info)(logger(), msg, meta(tracer, status, ctx))
+    level_functions.get(level, info)(logger(), msg, meta(tracer, status, ctx, **kwargs))
 
 
 def with_perf_log(perf_log_type: str = None, name: str = None):
@@ -82,8 +96,11 @@ def perf_log(fn: str, delta_t: float, callback: Callable = None):
     info("PerfLog", ctx={'fn': fn, 'delta_t': delta_t})
 
 
-def meta(tracer, status: str | int, ctx: dict):
-    return {**trace_meta(tracer), **{'ctx': ctx}, **{'status': status}}
+def meta(tracer, status: str | int, ctx: dict, **kwargs):
+    return {**trace_meta(tracer),
+            **{'ctx': ctx},
+            **{'status': status},
+            **kwargs}
 
 
 def trace_meta(tracer):
