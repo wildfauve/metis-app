@@ -133,7 +133,7 @@ def jwks_resource():
     return SubjectTokenConfig().jwks_endpoint
 
 
-def parse_bearer_token(hdrs: dict) -> str:
+def parse_bearer_token(hdrs: dict) -> str | None:
     """
     Takes HTTP hdrs and extracts the bearer token from the Authorization header
     Support Camel and lowercase versions of the header
@@ -141,7 +141,10 @@ def parse_bearer_token(hdrs: dict) -> str:
     auth_hdr = hdrs.get(event_authorisation_hdr_key, hdrs.get(event_authorisation_hdr_key.lower()))
     if not auth_hdr:
         return None
-    return re.search(r'(Bearer)\s(.*)', auth_hdr).group(2)
+    bearer_group = re.search(r'(Bearer)\s(.*)', auth_hdr)
+    if not bearer_group or len(bearer_group.groups()) != 2:
+        return None
+    return bearer_group.group(2)
 
 
 def bearer_token_hdr(jwt):

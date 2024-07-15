@@ -21,6 +21,13 @@ def test_returns_pip_with_valid_token(api_gateway_event_get, jwks_mock):
     assert result.id_token.value.sub() == "1@clients"
 
 
+def test_401_when_bearer_but_no_jwt(api_gateway_event_get, jwks_mock):
+    api_gateway_event_get['headers']['Authorization'] = "Bearer"
+    result = pip.pip(pip.PipConfig(), api_request(api_gateway_event_get, no_token=True))
+
+    assert not result.token_valid()
+
+
 def test_failures_to_validate_token(api_gateway_event_get, jwks_mock):
     result = pip.pip(pip.PipConfig(), api_request(api_gateway_event_get, token="bad_token"))
 
