@@ -33,6 +33,7 @@ def test_can_inject_ssm_client():
 def test_write_and_mutate_env(setup_aws_ctx):
     os.environ.pop('A_PARAM', None)
     key = '/test/test_function/function_namespace/environment/A_PARAM'
+
     writer = parameter_store.writer(key, mutate_env=True, value_type=parameter_store.SecureString)
 
     result = writer("TEST")

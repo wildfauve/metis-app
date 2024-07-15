@@ -87,7 +87,7 @@ class OsEnv(ParameterEnvironmentProtocol):
         return self._create_parameter(value_type, tier, key, value, client)
 
     def _create_parameter(self, value_type, tier, key, param, client):
-        result = client.put_parameter(Name=key if _is_absolute_path(key) else parameter_link(key),
+        result = client.put_parameter(Name=_to_absolute_key(key),
                                       Value=param,
                                       Type=value_type,
                                       Tier=tier if tier else 'Standard',
@@ -95,7 +95,7 @@ class OsEnv(ParameterEnvironmentProtocol):
         return result
 
     def _update_parameter(self, value_type, tier, key, value, client):
-        result = client.put_parameter(Name=key if _is_absolute_path(key) else parameter_link(key),
+        result = client.put_parameter(Name=_to_absolute_key(key),
                                       Value=value,
                                       Type=value_type,
                                       Overwrite=True)
@@ -236,7 +236,7 @@ def get_parameters_paged(path, client, token, parameters):
                    exception_test_fn=aws_error_test_fn,
                    error_cls=error.ParameterStoreError)
 def get_parameter(key, client, with_decryption: bool = True):
-    return client.get_parameter(Name=key if _is_absolute_path(key) else parameter_link(key),
+    return client.get_parameter(Name=_to_absolute_key(key),
                                 WithDecryption=with_decryption)
 
 
@@ -244,13 +244,13 @@ def get_parameter(key, client, with_decryption: bool = True):
                    exception_test_fn=aws_error_test_fn,
                    error_cls=error.ParameterStoreError)
 def put_parameter(value_type, tier, key, value, client):
-    if ParameterConfiguration().fn_for_update_test()(key):
+    if ParameterConfiguration().fn_for_update_test()(_to_absolute_key(key)):
         return update_parameter(value_type, key, value, client)
     return create_parameter(value_type, key, value, client, tier)
 
 
 def create_parameter(value_type, key, param, client, tier):
-    result = client.put_parameter(Name=key if _is_absolute_path(key) else parameter_link(key),
+    result = client.put_parameter(Name=_to_absolute_key(key),
                                   Value=param,
                                   Type=value_type,
                                   Tier=tier if tier else 'Standard',
@@ -259,7 +259,7 @@ def create_parameter(value_type, key, param, client, tier):
 
 
 def update_parameter(value_type, key, value, client):
-    result = client.put_parameter(Name=key if _is_absolute_path(key) else parameter_link(key),
+    result = client.put_parameter(Name=_to_absolute_key(key),
                                   Value=value,
                                   Type=value_type,
                                   Overwrite=True)
@@ -281,6 +281,9 @@ def parameter_path():
 def _is_absolute_path(key):
     return "/" in key
 
+
+def _to_absolute_key(key):
+    return key if _is_absolute_path(key) else parameter_link(key)
 
 def ssm_client(ssm_client=None):
     if ssm_client:
