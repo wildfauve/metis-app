@@ -88,6 +88,7 @@ EventBridgePublishEvent = app_value.EventBridgePublishEvent
 
 Serialiser = app_serialisers.SerialiserProtocol
 DictToJsonSerialiser = app_serialisers.DictToJsonSerialiser
+DictToJsonLDSerialiser = app_serialisers.DictToJsonLDSerialiser
 
 AppError = app_value.AppError
 

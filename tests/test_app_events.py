@@ -2,6 +2,7 @@ import pytest
 from aws_lambda_powertools.utilities.data_classes import S3Event
 from metis_fn import monad
 
+from .shared import aws_events
 from .shared import *
 
 from metis_app import app, app_serialisers, app_value, pip, pdp, app_events
@@ -9,6 +10,7 @@ from metis_app import app, app_serialisers, app_value, pip, pdp, app_events
 
 class UnAuthorised(app.AppError):
     pass
+
 
 def it_creates_a_route_matched_on_string():
     template, route_fn, opts = app_events.route_fn_from_kind('hello')
@@ -18,7 +20,8 @@ def it_creates_a_route_matched_on_string():
 
 
 def it_routes_based_on_tuple_and_template():
-    template, route_fn, opts = app_events.route_fn_from_kind(('API', 'GET', '/resourceBase/resource/uuid1/resource/uuid2'))
+    template, route_fn, opts = app_events.route_fn_from_kind(
+        ('API', 'GET', '/eventTest/resourceBase/resource/uuid1/resource/uuid2'))
 
     result = route_fn(dummy_request())
 
@@ -26,7 +29,8 @@ def it_routes_based_on_tuple_and_template():
 
 
 def it_implements_the_serialiser_protocol_for_the_response():
-    template, route_fn, opts = app_events.route_fn_from_kind(('API', 'GET', '/resourceBase/resource/uuid1/resource/uuid2'))
+    template, route_fn, opts = app_events.route_fn_from_kind(
+        ('API', 'GET', '/eventTest/resourceBase/resource/uuid1/resource/uuid2'))
 
     result = route_fn(dummy_request())
 
@@ -43,9 +47,15 @@ def it_defaults_to_no_matching_routes_when_not_found():
 
 
 def it_finds_the_route_pattern_by_function():
-    template, route_fn, opts = app_events.route_fn_from_kind(('API', 'GET', '/resourceBase/resource/uuid1'))
+    template, route_fn, opts = app_events.route_fn_from_kind(('API', 'GET', '/eventTest/resourceBase/resource/uuid1'))
 
-    assert app.template_from_route_fn(route_fn) == ('API', 'GET', '/resourceBase/resource/{id1}')
+    assert app.template_from_route_fn(route_fn) == ('API', 'GET', '/eventTest/resourceBase/resource/{id1}')
+
+
+def it_picks_the_first_route_when_conflict():
+    template, route_fn, opts = app_events.route_fn_from_kind(('API', 'GET', '/eventTest/resourceBase/resource/ACollection'))
+
+    assert app.template_from_route_fn(route_fn) == ('API', 'GET', '/eventTest/resourceBase/resource/ACollection')
 
 
 def it_parses_the_json_body(api_gateway_event_post_with_json_body):
@@ -98,12 +108,13 @@ def it_identifies_an_s3_event_using_custom_factory(s3_event_hello):
     assert event.objects[0].key == 'hello_file.json'
 
 
-def it_identifies_an_api_gateway_get_event(api_gateway_event_get):
-    event = app_events.event_factory(api_gateway_event_get)
+def it_identifies_an_api_gateway_get_event():
+    # use a path with a route local to this module.
+    event = app_events.event_factory(aws_events.api_event_get_with_path("/eventTest/resourceBase/resource/uuid1"))
 
     assert isinstance(event, app.ApiGatewayRequestEvent)
 
-    assert event.kind == ('API', 'GET', '/resourceBase/resource/uuid1')
+    assert event.kind == ('API', 'GET', '/eventTest/resourceBase/resource/uuid1')
     assert event.request_function
     assert event.path_params == {'id1': 'uuid1'}
     assert event.headers
@@ -115,7 +126,7 @@ def it_identifies_an_api_gateway_get_event_for_a_nested_resource(api_gateway_eve
 
     assert isinstance(event, app.ApiGatewayRequestEvent)
 
-    assert event.kind == ('API', 'GET', '/resourceBase/resource/uuid1/resource/resource-uuid2')
+    assert event.kind == ('API', 'GET', '/eventTest/resourceBase/resource/uuid1/resource/resource-uuid2')
     assert event.request_function
     assert event.path_params == {'id1': 'uuid1', 'id2': 'resource-uuid2'}
 
@@ -128,6 +139,7 @@ def it_identifies_a_kafka_event(kafka_event):
     assert len(event.events) == 1
     assert event.events[0].value == {"event": "someevent"}
 
+
 def it_handles_a_kafka_event_without_a_key(kafka_event_without_key):
     event = app_events.event_factory(event=kafka_event_without_key)
 
@@ -136,12 +148,14 @@ def it_handles_a_kafka_event_without_a_key(kafka_event_without_key):
     assert len(event.events) == 1
     assert event.events[0].value == {"event": "someevent"}
 
+
 def it_identifies_an_eventbridge_event(event_bridge_event):
     event = app_events.event_factory(event=event_bridge_event)
 
     assert isinstance(event, app.EventBridgePublishEvent)
     assert event.kind == 'my.domain.topic'
     assert event.body == {'hello': 'from-event-bridge'}
+
 
 #
 # Local Fixtures
@@ -179,7 +193,7 @@ def handler_404(request):
     return monad.Left(request.replace('error', app.AppError(message='no matching route', code=404)))
 
 
-@app.route(pattern=('API', 'GET', '/resourceBase/JWTBang!/{id1}'))
+@app.route(pattern=('API', 'GET', '/eventTest/resourceBase/JWTBang!/{id1}'))
 def get_resource_with_jwt_failure(request):
     @pdp.token_pdp_decorator(name="app-test",
                              namespace="Testing",
@@ -193,17 +207,34 @@ def get_resource_with_jwt_failure(request):
     return command(request)
 
 
-@app.route(pattern=('API', 'GET', '/resourceBase/resource/{id1}'))
+@app.route(pattern=('API', 'GET', '/eventTest/resourceBase/resource/ACollection'))
+def get_collection_resource(request):
+    """
+    For routing the event /eventTest/resourceBase/resource/1 is the same as
+                          /eventTest/resourceBase/resource/ACollection
+    """
+
+    def command(request):
+        if request.event:
+            pass
+        request.status_code = app_value.HttpStatusCode.CREATED
+        return monad.Right(request.replace('response', monad.Right(app.DictToJsonSerialiser({'resources': ['uuid1']}))))
+
+    return command(request)
+
+
+@app.route(pattern=('API', 'GET', '/eventTest/resourceBase/resource/{id1}'))
 def get_resource(request):
     def command(request):
         if request.event:
             pass
         request.status_code = app_value.HttpStatusCode.CREATED
         return monad.Right(request.replace('response', monad.Right(app.DictToJsonSerialiser({'resource': 'uuid1'}))))
+
     return command(request)
 
 
-@app.route(pattern=('API', 'GET', '/resourceBase/authz_resource/{id1}'))
+@app.route(pattern=('API', 'GET', '/eventTest/resourceBase/authz_resource/{id1}'))
 def get_resource_protected_by_authz(request):
     result = get_authz_resource(request)
     request.status_code = app_value.HttpStatusCode(result.error().code)
@@ -215,14 +246,14 @@ def get_authz_resource(request):
     pass  # because it will be unauthorised
 
 
-@app.route(pattern=('API', 'GET', '/resourceBase/resource/{id1}/resource/{id2}'))
+@app.route(pattern=('API', 'GET', '/eventTest/resourceBase/resource/{id1}/resource/{id2}'))
 def get_nested_resource(request):
     if request.event:
         breakpoint()
     return monad.Right(request.replace('response', monad.Right(app.DictToJsonSerialiser({'resource': 'uuid1'}))))
 
 
-@app.route(pattern=('API', 'POST', '/resourceBase/resource/{id1}'),
+@app.route(pattern=('API', 'POST', '/eventTest/resourceBase/resource/{id1}'),
            opts={'body_parser': app_serialisers.json_parser})
 def get_nested_resource(request):
     return monad.Right(request.replace('response', monad.Right(app.DictToJsonSerialiser({'resource': 'uuid1'}))))
@@ -251,7 +282,7 @@ def pip_wrapper(request):
 
 
 def change_path_to_authz_fn(event):
-    event['path'] = '/resourceBase/authz_resource/uuid1'
+    event['path'] = '/eventTest/resourceBase/authz_resource/uuid1'
     return event
 
 

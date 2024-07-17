@@ -28,12 +28,31 @@ class RouteMap(singleton.Singleton):
         if isinstance(route, str):
             match = self.routes.get(route, self.no_route())
             return route, match[0], match[1]
-        possible_matching_routes = self.event_matches(route[0], route[1], route[2])
-        if not possible_matching_routes or len(possible_matching_routes) > 1:
+        possible_matching_routes = self._multi_match_determination(route,
+                                                                   self.event_matches(route[0], route[1], route[2]))
+        if not possible_matching_routes:
             return self.no_route(True)
 
         # return the route_pattern, route_fn, and route_opts
         return possible_matching_routes[0][0], possible_matching_routes[0][1][0], possible_matching_routes[0][1][1],
+
+    def _multi_match_determination(self, route, matches):
+        """
+        Only for APIs with the route defined as ('API', 'GET', '/resourceBase/resource/ACollection')".
+
+        When a path has both an instance (id-based) and collection based route defined.
+        E.g. @app.route(pattern=('API', 'GET', '/resourceBase/resource/ACollection')) is the same as
+             @app.route(pattern=('API', 'GET', '/resourceBase/resource/{id1}'))
+        when the event path is /resourceBase/resource/ACollection (ACollection also matches {id1}
+        """
+        if not matches or len(matches) == 1:
+            return matches  # no matching routes or only 1 route
+        if all(["{" in m[0][2] for m in matches]):  # Each match is a templated path, so ambiguous
+            return None
+        # Otherwise the first one defined is used for the path.
+        return [matches[0]]
+
+
 
     def route_pattern_from_function(self, route_fn: Callable):
         route_item = fn.find(self.route_function_predicate(route_fn), self.routes.items())

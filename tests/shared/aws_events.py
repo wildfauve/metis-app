@@ -13,6 +13,23 @@ def s3_event_hello():
     }
 
 
+def api_event_get_with_path(path):
+    return {
+        "body": "eyJ0ZXN0IjoiYm9keSJ9",
+        "resource": "/{proxy+}",
+        "path": path,
+        "httpMethod": "GET",
+        "isBase64Encoded": True,
+        "queryStringParameters": {
+            "param1": "a",
+            "param2": "b"
+        },
+        "headers": {
+            "Authorization": "Bearer {}",
+        }
+    }
+
+
 @pytest.fixture
 def api_gateway_event_get():
     return {
@@ -144,7 +161,7 @@ def api_gateway_event_get_nested_resource():
     return {
         "body": "eyJ0ZXN0IjoiYm9keSJ9",
         "resource": "/{proxy+}",
-        "path": "/resourceBase/resource/uuid1/resource/resource-uuid2",
+        "path": "/eventTest/resourceBase/resource/uuid1/resource/resource-uuid2",
         "httpMethod": "GET",
         "isBase64Encoded": True,
         "queryStringParameters": {
@@ -172,7 +189,7 @@ def api_gateway_event_post_with_json_body():
     return {
         "body": json.dumps({'test': 1}),
         "resource": "/{proxy+}",
-        "path": "/resourceBase/resource/uuid1",
+        "path": "/eventTest/resourceBase/resource/uuid1",
         "httpMethod": "POST",
         "isBase64Encoded": True,
         "queryStringParameters": {
