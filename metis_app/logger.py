@@ -16,18 +16,47 @@ class PowerToolsLoggerWrapper:
     def info(self, meta, msg):
         self.logger.info(msg, **meta.get('ctx', {}))
 
+    def warning(self, meta, msg):
+        self.logger.warning(msg, **meta.get('ctx', {}))
+
+    def error(self, meta, msg):
+        self.logger.error(msg, **meta.get('ctx', {}))
+
+
+    def debug(self, meta, msg):
+        self.logger.debug(msg, **meta.get('ctx', {}))
+
 
 def info(msg: str,
          ctx: dict | None = None,
          tracer: Tracer | None = None,
          status: str = 'ok',
          **kwargs) -> None:
-    _log('info',
-         msg,
-         tracer,
-         status,
-         ctx if ctx else {},
-         **kwargs)
+    _log('info', msg, tracer, status, ctx if ctx else {}, **kwargs)
+
+
+def debug(msg: str,
+          ctx: dict | None = None,
+          tracer: Tracer | None = None,
+          status: str = 'ok',
+          **kwargs) -> None:
+    _log('debug', msg, tracer, status, ctx if ctx else {}, **kwargs)
+
+
+def warn(msg: str,
+            ctx: dict | None = None,
+            tracer: Tracer | None = None,
+            status: str = 'ok',
+            **kwargs) -> None:
+    _log('warning', msg, tracer, status, ctx if ctx else {}, **kwargs)
+
+
+def error(msg: str,
+          ctx: dict | None = None,
+          tracer: Tracer | None = None,
+          status: str = 'ok',
+          **kwargs) -> None:
+    _log('error', msg, tracer, status, ctx if ctx else {}, **kwargs)
 
 
 def _log(level: str,
@@ -90,6 +119,18 @@ def _info(lgr, msg: str, meta: Dict) -> None:
     lgr.info(meta, msg)
 
 
+def _debug(lgr, msg: str, meta: Dict) -> None:
+    lgr.debug(meta, msg)
+
+
+def _warn(lgr, msg: str, meta: Dict) -> None:
+    lgr.warn(meta, msg)
+
+
+def _error(lgr, msg: str, meta: Dict) -> None:
+    lgr.error(meta, msg)
+
+
 def perf_log(fn: str, delta_t: float, callback: Callable = None):
     if callback:
         callback(fn, delta_t)
@@ -107,4 +148,4 @@ def trace_meta(tracer):
     return tracer.serialise() if tracer else {}
 
 
-level_functions = {'info': _info}
+level_functions = {'info': _info, 'error': _error, 'warn': _warn, 'debug': _debug}

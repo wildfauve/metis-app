@@ -3,7 +3,7 @@ from .shared import *
 from aws_lambda_powertools.metrics import MetricUnit
 from metis_fn import monad
 
-from metis_app import app, observable, app_value
+from metis_app import app, observable, app_value, logger
 
 obs = observable.Observer().configure(service_name="test-service", metrics_namespace='module1')
 
@@ -34,7 +34,17 @@ def get_resource(request):
         if request.event:
             pass
         obs.tracer.put_annotation(key="Resource", value=request.event.path_params.get('id1'))
+        # Directly use the Powertools logger
         obs.logger.info("Search for resource", uuid=request.event.path_params.get('id1'))
+        obs.logger.error("error-example")
+        obs.logger.warning("warn-example")
+        obs.logger.debug("debug-example")
+        # use logger wrapper
+        logger.info("Info test")
+        logger.warn("Warning test")
+        logger.error("Error test")
+        logger.debug("Debug test")
+
         obs.metrics.add_metric(name="Resource:Search", unit=MetricUnit.Count, value=1)
 
         request.observer.logger.info("logging from logger in request")
