@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "metis-app"
-version = "0.4.15"
+version = "0.4.16"
 description = ""
 authors = ["Col Perks <wild.fauve@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-metis-fn = "^0.1.0"
+metis-fn = "^0.1.1"
 requests = "^2.31.0"
 backoff = "^2.2.1"
 simple-memory-cache = "^1.0.0"
