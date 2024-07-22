@@ -1,11 +1,24 @@
 import json
-from typing import Dict, Union, Any, Callable
+from typing import Dict, Any, Callable
+
+from metis_fn import singleton
 from pino import pino
 import time
 
 from .tracer import Tracer
 from . import json_util
 from .observable import Observer
+
+class LogConfig(singleton.Singleton):
+    level: str = 'info'
+
+    def configure(self, level: str):
+        if level not in ['info', 'error', 'debug', 'warn']:
+            self.level = 'info'
+        else:
+            self.level = level
+        return self
+
 
 
 class PowerToolsLoggerWrapper:
@@ -112,7 +125,9 @@ def custom_pino_dump_fn(json_log):
 def logger():
     if Observer().is_configured:
         return PowerToolsLoggerWrapper(lgr=Observer().logger)
-    return pino(bindings={"apptype": "prototype", "context": "main"}, dump_function=custom_pino_dump_fn)
+    return pino(bindings={"apptype": "prototype", "context": "main"},
+                dump_function=custom_pino_dump_fn,
+                level=LogConfig().level)
 
 
 def _info(lgr, msg: str, meta: Dict) -> None:

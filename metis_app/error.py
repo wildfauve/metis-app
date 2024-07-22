@@ -8,6 +8,7 @@ class BaseError(Exception):
                  traceback=None,
                  code=500,
                  klass="",
+                 exception_klass=None,
                  retryable=False):
         self.code = 500 if code is None else code
         self.retryable = retryable

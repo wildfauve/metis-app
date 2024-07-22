@@ -45,6 +45,7 @@ def try_logging(msg, ctx):
 
 @monad.Try()
 def try_debug_logging(msg, ctx):
+    logger.LogConfig().configure(level="debug")
     logger.debug("Test", status=200, ctx={'time': chronos.time_now()})
 
 
