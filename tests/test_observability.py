@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from .shared import *
 
 from aws_lambda_powertools.metrics import MetricUnit
@@ -5,13 +7,31 @@ from metis_fn import monad
 
 from metis_app import app, observable, app_value, logger
 
-obs = observable.Observer().configure(service_name="test-service", metrics_namespace='module1')
+
+@dataclass
+class CustomObserver:
+    counter: int
+
+    def inc(self):
+        self.counter += 1
+        return self
+
+
+obs = observable.Observer().configure(service_name="test-service",
+                                      metrics_namespace='module1',
+                                      custom_observer=CustomObserver(counter=0))
 
 
 def it_uses_the_configured_logger_tracer_and_metrics_from_powertools(set_up_env,
                                                                      api_gateway_event_get):
     result = handler(api_gateway_event_get, aws_context_obj())
     assert result['statusCode'] == 201
+
+
+def it_holds_any_observer_like_cls():
+    obs.custom_observer.inc()
+
+    assert obs.custom_observer.counter == 1
 
 
 #
