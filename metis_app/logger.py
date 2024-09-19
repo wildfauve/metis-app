@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Any, Protocol
+from typing import Any, Protocol
 
 from metis_fn import singleton
 from pino import pino
@@ -76,6 +76,12 @@ class LogConfig(singleton.Singleton):
 
 
 class PowerToolsLoggerWrapper(ConfiguredLoggerProtocol):
+    """
+    The powertools logger is required to be wrapped to support this modules log function signature, which is
+    consistent with the Pino logger (that is, an optional first arg of a context dict, and the second arg as a
+    msg str.  For the Powertools logger, the meta (the ctx + other state) is passes as kwargs.  Implying that the
+    meta dict will not be logged as a 'ctx' key in the structured logs, rather will be at the top level.
+    """
 
     def __init__(self, lgr):
         self.logger = lgr
@@ -96,44 +102,39 @@ class PowerToolsLoggerWrapper(ConfiguredLoggerProtocol):
 def info(msg: str,
          ctx: dict | None = None,
          tracer: Tracer | None = None,
-         status: str = 'ok',
          **kwargs) -> None:
-    _log('info', msg, tracer, status, ctx if ctx else {}, **kwargs)
+    _log('info', msg, tracer, ctx if ctx else {}, **kwargs)
 
 
 def debug(msg: str,
           ctx: dict | None = None,
           tracer: Tracer | None = None,
-          status: str = 'ok',
           **kwargs) -> None:
-    _log('debug', msg, tracer, status, ctx if ctx else {}, **kwargs)
+    _log('debug', msg, tracer, ctx if ctx else {}, **kwargs)
 
 
 def warn(msg: str,
          ctx: dict | None = None,
          tracer: Tracer | None = None,
-         status: str = 'ok',
          **kwargs) -> None:
-    _log('warning', msg, tracer, status, ctx if ctx else {}, **kwargs)
+    _log('warning', msg, tracer, ctx if ctx else {}, **kwargs)
 
 
 def error(msg: str,
           ctx: dict | None = None,
           tracer: Tracer | None = None,
-          status: str = 'ok',
           **kwargs) -> None:
-    _log('error', msg, tracer, status, ctx if ctx else {}, **kwargs)
+    _log('error', msg, tracer, ctx if ctx else {}, **kwargs)
 
 
 def _log(level: str,
          msg: str,
          tracer: Any,
-         status: str,
          ctx: dict[str, str],
          **kwargs) -> None:
     if level not in level_functions.keys():
         return
-    level_functions.get(level, info)(logger(), msg, meta(tracer, status, ctx, **kwargs))
+    level_functions.get(level, info)(logger(), msg, meta(tracer, ctx, **kwargs))
 
 
 def with_perf_log(perf_log_type: str = None, name: str = None):
@@ -179,19 +180,19 @@ def logger():
     return LogConfig().logger
 
 
-def _info(lgr, msg: str, meta: Dict) -> None:
+def _info(lgr, msg: str, meta: dict) -> None:
     lgr.info(meta, msg)
 
 
-def _debug(lgr, msg: str, meta: Dict) -> None:
+def _debug(lgr, msg: str, meta: dict) -> None:
     lgr.debug(meta, msg)
 
 
-def _warn(lgr, msg: str, meta: Dict) -> None:
+def _warn(lgr, msg: str, meta: dict) -> None:
     lgr.warn(meta, msg)
 
 
-def _error(lgr, msg: str, meta: Dict) -> None:
+def _error(lgr, msg: str, meta: dict) -> None:
     lgr.error(meta, msg)
 
 
@@ -201,9 +202,8 @@ def perf_log(fn: str, delta_t: float, callback: callable = None):
     info("PerfLog", fn=fn, delta_t=delta_t)
 
 
-def meta(tracer, status: str | int, ctx: dict, **kwargs):
+def meta(tracer, ctx: dict, **kwargs):
     _meta = {**trace_meta(tracer),
-             **{'status': status},
              **kwargs}
     if not ctx:
         return _meta

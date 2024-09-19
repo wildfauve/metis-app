@@ -54,6 +54,14 @@ def it_holds_any_observer_like_cls():
 
     assert obs.custom_observer.counter == 1
 
+def it_adds_a_custom_observer_cls_after_construction():
+    obs = observable.Observer()
+    obs.add_custom(another_custom=CustomObserver(counter=0))
+    obs.another_custom.inc()
+
+    assert obs.another_custom.counter == 1
+
+
 
 #
 # Helpers

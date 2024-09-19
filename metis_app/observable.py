@@ -61,6 +61,14 @@ class Observer(singleton.Singleton):
         post_init_fn(self)
         return self
 
+    def add_custom(self, **kwargs):
+        """
+        Adds a custom observer to the Observer singleton.  It is available via the function named for the custom
+        observer key in the kwargs
+        """
+        self.other_observers = kwargs
+        return self
+
     def _configure_metrics(self, metrics_cls, namespace, service):
         if metrics_cls:
             return metrics_cls(namespace=self.metrics_namespace, service=self.service_name)
@@ -70,7 +78,6 @@ class Observer(singleton.Singleton):
         if tracer_cls:
             return tracer_cls(service=self.service_name)
         return Tracer(service=self.service_name)
-
 
     def _configure_logger(self, logger_cls: Logger | Any, custom_log_level: int):
         """
@@ -89,6 +96,7 @@ class Observer(singleton.Singleton):
     def __getattr__(self, name):
         def obs(obj_name):
             return self.other_observers.get(obj_name, None)
+
         if name not in self.other_observers.keys():
             raise AttributeError
         return obs(name)
