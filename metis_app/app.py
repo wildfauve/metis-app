@@ -179,7 +179,7 @@ def template_from_route_fn(route_fn: Callable) -> str | tuple:
 def log_start(request):
     logger.info(msg='Start Handler',
                 tracer=request.tracer,
-                ctx={'event': event_kind_to_log_ctx(request)})
+                event=event_kind_to_log_ctx(request))
     return monad.Right(request)
 
 
@@ -230,7 +230,7 @@ def _body_from_pipeline_response(request):
         response['body'] = body.serialise()
         status = 'fail'
 
-    logger.info(msg="End Handler", tracer=request.lift().tracer, ctx={}, status=status)
+    logger.info(msg="End Handler", tracer=request.lift().tracer, status=status)
 
     return response
 
@@ -240,9 +240,9 @@ def _body_from_base_error(error: AppError):
     body['statusCode'] = error.code
     body['body'] = error.serialise()
 
-    logger.info(msg="End Handler--with base Error",
-                ctx={'error': error.message},
-                status='fail')
+    logger.error(msg="End Handler--with base Error",
+                 error=error.message if hasattr(error, 'message') else str(error),
+                 status='fail')
     return body
 
 

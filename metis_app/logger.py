@@ -1,5 +1,6 @@
 import json
-from typing import Dict, Any, Callable
+import logging
+from typing import Dict, Any, Protocol
 
 from metis_fn import singleton
 from pino import pino
@@ -7,37 +8,89 @@ import time
 
 from .tracer import Tracer
 from . import json_util
-from .observable import Observer
+
+class ConfiguredLoggerProtocol(Protocol):
+
+    def info(self, meta: dict, msg: str, **kwargs):
+        ...
+
+    def warn(self, meta: dict, msg: str, **kwargs):
+        ...
+
+    def error(self, meta: dict, msg: str, **kwargs):
+        ...
+
+    def debug(self, meta: dict, msg: str, **kwargs):
+        ...
+
 
 class LogConfig(singleton.Singleton):
-    level: str = 'info'
+    """
+    Configure the logger and log level for all logging.  When using the log functions in this module (info, error, etc)
+    the logger configured in LogConfig will be used as the logger.  The default logger is the Pino logger.
+    The configured logger must implement the ConfiguredLoggerProtocol
+    Note also that when using powertools via the observable module, the configured logged is the Powertools Logger cls.
+    """
+    default_level: int = logging.INFO
+    configured_logger: Any = None
 
-    def configure(self, level: str):
-        if level not in ['info', 'error', 'debug', 'warn']:
-            self.level = 'info'
-        else:
-            self.level = level
+    def clear(self):
+        self.configured_logger = None
+        if getattr(self, 'logging_level', None):
+            self.logging_level = None
         return self
 
+    def configure(self, level: str | int = None, custom_logger: Any = None):
+        if level:  # don't override the current level
+            if isinstance(level, str):
+                self.logging_level = self._level_from_name(level)
+            else:
+                self.logging_level = level
+        self.configured_logger = custom_logger if custom_logger else self._standard_logger(self.level)
+        return self
+
+    def _level_from_name(self, name):
+        if (lvl := getattr(logging, name.upper())):
+            return lvl
+        return
+
+    @property
+    def logger(self):
+        if not getattr(self, 'configured_logger', None):
+            return self._standard_logger(self.level)
+        return self.configured_logger
+
+    @property
+    def level(self):
+        if not getattr(self, 'logging_level', None):
+            return self.default_level
+        return self.logging_level
+
+    def _standard_logger(self, level):
+        return pino(bindings={"apptype": "prototype", "context": "main"},
+                    dump_function=custom_pino_dump_fn,
+                    level=self._level_as_name(level))
+
+    def _level_as_name(self, lvl):
+        return logging.getLevelName(lvl).lower()
 
 
-class PowerToolsLoggerWrapper:
+class PowerToolsLoggerWrapper(ConfiguredLoggerProtocol):
 
     def __init__(self, lgr):
         self.logger = lgr
 
     def info(self, meta, msg):
-        self.logger.info(msg, **meta.get('ctx', {}))
+        self.logger.info(msg, **meta)
 
     def warning(self, meta, msg):
-        self.logger.warning(msg, **meta.get('ctx', {}))
+        self.logger.warning(msg, **meta)
 
     def error(self, meta, msg):
-        self.logger.error(msg, **meta.get('ctx', {}))
-
+        self.logger.error(msg, **meta)
 
     def debug(self, meta, msg):
-        self.logger.debug(msg, **meta.get('ctx', {}))
+        self.logger.debug(msg, **meta)
 
 
 def info(msg: str,
@@ -57,10 +110,10 @@ def debug(msg: str,
 
 
 def warn(msg: str,
-            ctx: dict | None = None,
-            tracer: Tracer | None = None,
-            status: str = 'ok',
-            **kwargs) -> None:
+         ctx: dict | None = None,
+         tracer: Tracer | None = None,
+         status: str = 'ok',
+         **kwargs) -> None:
     _log('warning', msg, tracer, status, ctx if ctx else {}, **kwargs)
 
 
@@ -123,11 +176,7 @@ def custom_pino_dump_fn(json_log):
 
 
 def logger():
-    if Observer().is_configured:
-        return PowerToolsLoggerWrapper(lgr=Observer().logger)
-    return pino(bindings={"apptype": "prototype", "context": "main"},
-                dump_function=custom_pino_dump_fn,
-                level=LogConfig().level)
+    return LogConfig().logger
 
 
 def _info(lgr, msg: str, meta: Dict) -> None:
@@ -146,17 +195,19 @@ def _error(lgr, msg: str, meta: Dict) -> None:
     lgr.error(meta, msg)
 
 
-def perf_log(fn: str, delta_t: float, callback: Callable = None):
+def perf_log(fn: str, delta_t: float, callback: callable = None):
     if callback:
         callback(fn, delta_t)
-    info("PerfLog", ctx={'fn': fn, 'delta_t': delta_t})
+    info("PerfLog", fn=fn, delta_t=delta_t)
 
 
 def meta(tracer, status: str | int, ctx: dict, **kwargs):
-    return {**trace_meta(tracer),
-            **{'ctx': ctx},
-            **{'status': status},
-            **kwargs}
+    _meta = {**trace_meta(tracer),
+             **{'status': status},
+             **kwargs}
+    if not ctx:
+        return _meta
+    return {**_meta, **ctx}
 
 
 def trace_meta(tracer):
