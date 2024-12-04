@@ -44,5 +44,5 @@ def at_right_end_of_window(width, end, at):
     return ((end - at) == 0) or ((end - at) < threshold)
 
 def determine_in_window_chance(width, end, at):
-    chance = random.randint(1, (end - at))
+    chance = random.randint(1, int(end - at))
     return (width % chance) < threshold

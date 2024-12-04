@@ -1,7 +1,7 @@
 from metis_fn import monad
-from metis_app import subject_token, http_adapter, crypto as Cy, cache
+from metis_app import subject_token, http_adapter, crypto, cache
 
-from metis_crypto import jwk, jwt
+from metis_app.crypto_util import jwk, jwt
 import time
 
 from .shared import *
@@ -81,7 +81,7 @@ def test_token_failed_when_expired(jwks_mock):
     id_token = subject_token.parse_generate_id_token(jwt)
 
     assert id_token.is_left()
-    assert isinstance(id_token.error(), Cy.JwtDecodingError)
+    assert isinstance(id_token.error(), crypto.JwtDecodingError)
     assert "Expired at {}".format(exp) in id_token.error().message
 
 

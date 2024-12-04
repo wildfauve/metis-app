@@ -2,7 +2,7 @@ import json
 from dataclasses import make_dataclass, dataclass
 from functools import reduce
 from typing import Tuple, Union, Optional
-from metis_crypto import jwk, jwt
+from .crypto_util import jwk, jwt
 from pymonad.tools import curry
 
 from metis_fn import monad, chronos

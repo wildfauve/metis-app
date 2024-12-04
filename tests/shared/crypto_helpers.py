@@ -1,5 +1,5 @@
 import pytest
-from metis_crypto import jwk, jws, jwt
+from metis_app.crypto_util import jwk, jws, jwt
 import json
 import time
 from typing import Tuple

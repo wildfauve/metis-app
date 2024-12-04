@@ -17,7 +17,7 @@ def token_pdp(pdp_value):
     Interrogates the PIP which holds the id_token to determine it is valid.  The ID Token has been inserted in
     the PIP by the app being configured to use the subject_token module.
 
-    The id_token in the PIP MUST be present and it MUST be valid according to the logic in the fn crypto.decode_jwt.
+    The id_token in the PIP MUST be present and it MUST be valid according to the logic in the fn crypto_util.decode_jwt.
     """
     pdp_value.decisions.append(pdp_value.pip.token_valid())
     return pdp_value
@@ -78,7 +78,7 @@ def token_pdp_decorator(name: str,
     Policy to check the presence and validity of a bearer token.
 
     The decorated function must have a kwarg called "pip" which is an instance of pip.PipConfig.
-    + The pip has fn "id_token", which returns a monad whose value is a token; id_token: monad.EitherMonad[crypto.IdToken]
+    + The pip has fn "id_token", which returns a monad whose value is a token; id_token: monad.EitherMonad[crypto_util.IdToken]
     """
 
     def inner(fn):
